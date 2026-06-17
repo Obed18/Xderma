@@ -18,11 +18,13 @@ import {
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import DisclaimerModal from "./DisclaimerModal";
+import { useXderma } from "../context/AppContext";
 
 const { width } = Dimensions.get("window");
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { t } = useXderma();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
@@ -52,13 +54,11 @@ const HomeScreen: React.FC = () => {
             imageStyle={styles.imageStyle}
           >
         <View style={styles.overlay} />
-            <Text style={styles.title}>Intelligent Skin</Text>
-            <Text style={styles.highlight}>Analysis System</Text>
+            <Text style={styles.title}>{t("home.title")}</Text>
+            <Text style={styles.highlight}>{t("home.highlight")}</Text>
 
             <Text style={styles.description}>
-              Clinical-grade AI that classifies skin conditions with
-              explainable predictions, Grad-CAM visualizations, and
-              confidence-calibrated scoring.
+              {t("home.description")}
             </Text>
 
             <View style={styles.buttonRow}>
@@ -68,12 +68,12 @@ const HomeScreen: React.FC = () => {
                 activeOpacity={0.85}
               >
                 <Camera color="#fff" size={18} />
-                <Text style={styles.primaryText}>Start Analysis</Text>
+                <Text style={styles.primaryText}>{t("home.startAnalysis")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.secondaryBtn}>
                 <Info color="#fff" size={18} />
-                <Text style={styles.secondaryText}>Learn more</Text>
+                <Text style={styles.secondaryText}>{t("home.learnMore")}</Text>
               </TouchableOpacity>
             </View>
       </ImageBackground>
@@ -82,10 +82,10 @@ const HomeScreen: React.FC = () => {
           {/* STATS */}
           <View style={styles.statsRow}>
             {[
-              ["87.3%", "Accuracy"],
+              ["87.3%", t("home.accuracy")],
               ["0.934", "ROC-AUC"],
-              ["7", "Conditions"],
-              ["<3s", "Response"],
+              ["7", t("home.conditions")],
+              ["<3s", t("home.response")],
             ].map((item, i) => (
               <View key={i} style={styles.statBox}>
                 <Text style={styles.statValue}>{item[0]}</Text>
@@ -97,21 +97,21 @@ const HomeScreen: React.FC = () => {
           {/* ACTION CARDS */}
           <ActionCard
             icon={<Camera color="#9CA3AF" />}
-            title="Capture Image"
-            desc="Use your camera to capture a skin lesion for AI analysis"
+            title={t("home.captureImage")}
+            desc={t("home.captureImageDesc")}
           />
 
           <ActionCard
             icon={<Upload color="#00D4FF" />}
-            title="Upload Image"
-            desc="Upload an existing photo from your device for analysis"
+            title={t("home.uploadImage")}
+            desc={t("home.uploadImageDesc")}
             highlight
           />
 
           <ActionCard
             icon={<Clock color="#00D4FF" />}
-            title="View History"
-            desc="No analyses yet — start your first scan"
+            title={t("home.viewHistory")}
+            desc={t("home.viewHistoryDesc")}
           />
         </ScrollView>
       </MotiView>
@@ -156,10 +156,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0B1B2B",
-        borderTopRightRadius: 24,
+    borderTopRightRadius: 24,
     borderTopLeftRadius: 24,
     paddingTop: 35,
-
   },
   main: {
     flex: 1,

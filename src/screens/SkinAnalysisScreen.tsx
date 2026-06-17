@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ImageSourcePropType,
   Dimensions,
   ScrollView,
   TextInput,
@@ -14,23 +13,33 @@ import {
 import { BlurView } from 'expo-blur';
 import { Camera, Upload, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import Animated, { FadeInUp } from 'react-native-reanimated';
-import Loader from './Loader';
+import Animated from 'react-native-reanimated';
+import { FadeInUp } from 'react-native-reanimated';import Loader from './Loader';
+import { useXderma } from '../context/AppContext';
+import { analyzeImageQuality } from "../utils/imageQuality";
+import SmartLoader from "./SmartLoader";
+import { Image as RNImage } from "react-native";
+
+type SelectedImage = {
+  uri: string;
+};
 
 const { width } = Dimensions.get('window');
 const ANALYSIS_DURATION_MS = 8 * 1000;
 
-const SAMPLE_IMAGES = [
-  require('../assets/sd1.webp'),
-  require('../assets/sd2.webp'),
-  require('../assets/sd3.jpg'),
+const SAMPLE_IMAGES: SelectedImage[] = [
+  { uri: RNImage.resolveAssetSource(require('../assets/sd1.webp')).uri },
+  { uri: RNImage.resolveAssetSource(require('../assets/sd2.webp')).uri },
+  { uri: RNImage.resolveAssetSource(require('../assets/sd3.jpg')).uri },
 ];
 
 export default function SkinAnalysisScreen({ navigation }: any) {
-  const [selectedImage, setSelectedImage] = useState<ImageSourcePropType | null>(null);
+  const { t } = useXderma();
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
   const [symptoms, setSymptoms] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showScanLoader, setShowScanLoader] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -39,6 +48,20 @@ export default function SkinAnalysisScreen({ navigation }: any) {
       }
     };
   }, []);
+
+  useEffect(() => {
+  if (showScanLoader) {
+    const timer = setTimeout(() => {
+      setShowScanLoader(false);
+
+      // 👉 HERE you open your result modal later
+      // setShowResult(true);
+
+    }, 4000); // scanner duration
+
+    return () => clearTimeout(timer);
+  }
+}, [showScanLoader]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -58,37 +81,47 @@ export default function SkinAnalysisScreen({ navigation }: any) {
     }
   };
 
-  const handleAnalyze = () => {
-    if (!selectedImage || isAnalyzing) {
+const handleAnalyze = async () => {
+  if (!selectedImage || isAnalyzing) return;
+
+  try {
+    const result = await analyzeImageQuality(selectedImage.uri);
+
+    if (result.isBlurry || result.isTooDark || result.isLowContrast) {
+      let message = "";
+
+      if (result.isBlurry) message += "• Image is blurry\n";
+      if (result.isTooDark) message += "• Lighting is too low\n";
+      if (result.isLowContrast) message += "• Poor contrast\n";
+
+      alert(`⚠️ Image Quality Issue\n\n${message}\nPlease retake a clearer photo.`);
       return;
     }
 
+    // Phase 1
     setIsAnalyzing(true);
-    timeoutRef.current = setTimeout(() => {
-      setIsAnalyzing(false);
-      navigation.navigate('ResultsScreen', {
-        image: selectedImage,
-        symptoms,
-      });
-    }, ANALYSIS_DURATION_MS);
-  };
 
-  return (
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <Animated.View entering={FadeInUp.duration(700)} style={styles.card}>
-          <Text style={styles.badge}>AI ANALYSIS</Text>
-          <Text style={styles.title}>Skin Lesion Analysis</Text>
+          <Text style={styles.badge}>{t('skinAnalysis.badge')}</Text>
+          <Text style={styles.title}>{t('skinAnalysis.title')}</Text>
           <Text style={styles.subtitle}>
-            Upload or capture an image of a skin lesion. Our AI will analyze it and provide detailed results.
+            {t('skinAnalysis.subtitle')}
           </Text>
 
           <View style={[styles.uploadBox, selectedImage ? styles.uploadBoxSelected : null]}>
             {selectedImage ? (
               <>
-                <Image source={selectedImage} style={styles.preview} />
+                <Image source={{ uri: selectedImage.uri }} style={styles.preview} />
                 <TouchableOpacity
-                  accessibilityLabel="Remove selected image"
+                  accessibilityLabel={t('skinAnalysis.removeImage')}
                   style={styles.removeBtn}
                   onPress={() => setSelectedImage(null)}
                 >
@@ -98,8 +131,8 @@ export default function SkinAnalysisScreen({ navigation }: any) {
             ) : (
               <>
                 <Upload color="#9CA3AF" size={32} />
-                <Text style={styles.uploadText}>Drop your image here</Text>
-                <Text style={styles.smallText}>or click to browse</Text>
+                <Text style={styles.uploadText}>{t('skinAnalysis.dropImage')}</Text>
+                <Text style={styles.smallText}>{t('skinAnalysis.browseHint')}</Text>
               </>
             )}
 
@@ -107,12 +140,12 @@ export default function SkinAnalysisScreen({ navigation }: any) {
               <View style={styles.buttonRow}>
                 <TouchableOpacity style={styles.browseBtn} onPress={pickImage}>
                   <Upload color="#A5B4FC" size={18} />
-                  <Text style={styles.browseText}>Browse Files</Text>
+                  <Text style={styles.browseText}>{t('skinAnalysis.browseFiles')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.cameraBtn} onPress={openCamera}>
                   <Camera color="#00FFC6" size={18} />
-                  <Text style={styles.cameraText}>Use Camera</Text>
+                  <Text style={styles.cameraText}>{t('skinAnalysis.useCamera')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -120,10 +153,10 @@ export default function SkinAnalysisScreen({ navigation }: any) {
 
           {selectedImage && (
             <View style={styles.symptomsContainer}>
-              <Text style={styles.symptomsLabel}>Any symptoms or additional details?</Text>
+              <Text style={styles.symptomsLabel}>{t('skinAnalysis.symptomsLabel')}</Text>
               <TextInput
                 style={styles.symptomsInput}
-                placeholder="Describe any symptoms or concerns..."
+                placeholder={t('skinAnalysis.symptomsPlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 value={symptoms}
                 onChangeText={setSymptoms}
@@ -134,18 +167,18 @@ export default function SkinAnalysisScreen({ navigation }: any) {
           )}
 
           <View style={styles.samplesContainer}>
-            <Text style={styles.sampleTitle}>Or try with sample images:</Text>
+            <Text style={styles.sampleTitle}>{t('skinAnalysis.sampleTitle')}</Text>
             <View style={styles.samplesRow}>
               {SAMPLE_IMAGES.map((img, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
                     styles.sampleBtn,
-                    selectedImage === img && styles.sampleBtnSelected,
+                    selectedImage?.uri === img.uri && styles.sampleBtnSelected,
                   ]}
                   onPress={() => setSelectedImage(img)}
                 >
-                  <Image source={img} style={styles.sampleImg} />
+                  <Image source={{ uri: img.uri }} style={styles.sampleImg} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -165,21 +198,34 @@ export default function SkinAnalysisScreen({ navigation }: any) {
                 { color: selectedImage && !isAnalyzing ? '#000000' : '#9CA3AF' },
               ]}
             >
-              {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
+              {isAnalyzing ? t('skinAnalysis.analyzing') : t('skinAnalysis.analyze')}
             </Text>
           </TouchableOpacity>
 
           <Text style={styles.footerText}>
-            Images are processed securely and never permanently stored.
+            {t('skinAnalysis.footer')}
           </Text>
         </Animated.View>
       </ScrollView>
 
-      <Modal transparent animationType="fade" visible={isAnalyzing} onRequestClose={() => {}}>
-        <BlurView intensity={45} tint="dark" style={styles.modalOverlay}>
-            <Loader />
-        </BlurView>
-      </Modal>
+        <Modal transparent animationType="fade" visible={isAnalyzing}>
+            <BlurView intensity={45} tint="dark" style={styles.modalOverlay}>
+              <SmartLoader
+                onComplete={() => {
+                  setIsAnalyzing(false);
+                  setShowScanLoader(true); // move to next phase
+                }}
+              />
+            </BlurView>
+          </Modal>
+
+          <Modal transparent animationType="fade" visible={showScanLoader}>
+            <BlurView intensity={45} tint="dark" style={styles.modalOverlay}>
+              <Loader
+                route={{ params: { image: selectedImage?.uri } }}
+              />
+            </BlurView>
+        </Modal>
     </>
   );
 }

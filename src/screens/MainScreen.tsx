@@ -24,16 +24,26 @@ import {
 import HomeScreen from "./HomeScreen";
 import SettingsScreen from "./SettingsScreen";
 import DisclaimerModal from "./DisclaimerModal";
+import HistoryScreen from "./HistoryScreen";
+import PrivacyScreen from "./PrivacyScreen";
 import { useNavigation } from "@react-navigation/native";
+import { useXderma } from "../context/AppContext";
+import { TranslationKey } from "../i18n/translations";
 
 const { width, height } = Dimensions.get("window");
 
-const menuItems = [
-  { id: 1, label: "Home", icon: Home },
-  { id: 2, label: "Analyze", icon: Microscope },
-  { id: 3, label: "History", icon: History },
-  { id: 4, label: "Privacy", icon: Shield },
-  { id: 5, label: "Settings", icon: Settings },
+type MenuItemId = "home" | "analyze" | "history" | "privacy" | "settings";
+
+const menuItems: Array<{
+  id: MenuItemId;
+  labelKey: TranslationKey;
+  icon: typeof Home;
+}> = [
+  { id: "home", labelKey: "main.home", icon: Home },
+  { id: "analyze", labelKey: "main.analyze", icon: Microscope },
+  { id: "history", labelKey: "main.history", icon: History },
+  { id: "privacy", labelKey: "main.privacy", icon: Shield },
+  { id: "settings", labelKey: "main.settings", icon: Settings },
 ];
 
 if (
@@ -45,8 +55,9 @@ if (
 
 const MainScreen = () => {
   const navigation = useNavigation<any>();
+  const { t } = useXderma();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeMenuItem, setActiveMenuItem] = useState("Home");
+  const [activeMenuItem, setActiveMenuItem] = useState<MenuItemId>("home");
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const closeMenu = () => {
@@ -68,31 +79,44 @@ const MainScreen = () => {
     openMenu();
   };
 
-  const handleMenuItemPress = (label: string) => {
-    if (label === "Analyze") {
+  const handleMenuItemPress = (id: MenuItemId) => {
+    if (id === "analyze") {
       navigation.navigate("SkinAnalysis");
       closeMenu();
       return;
     }
 
-    setActiveMenuItem(label);
+    setActiveMenuItem(id);
     closeMenu();
   };
 
   const renderMainContent = () => {
-    if (activeMenuItem === "Home") {
+    if (activeMenuItem === "home") {
       return <HomeScreen />;
     }
 
-    if (activeMenuItem === "Settings") {
+    if (activeMenuItem === "settings") {
       return <SettingsScreen />;
     }
 
+    if (activeMenuItem === "history")  {
+      return <HistoryScreen />;
+    }
+
+    if (activeMenuItem === "privacy")  {
+      return <PrivacyScreen />;
+    }
+    
+    const activeLabelKey =
+      menuItems.find((item) => item.id === activeMenuItem)?.labelKey ??
+      "main.home";
+    const activeLabel = t(activeLabelKey);
+
     return (
       <View style={styles.placeholderContent}>
-        <Text style={styles.title}>{activeMenuItem}</Text>
+        <Text style={styles.title}>{activeLabel}</Text>
         <Text style={styles.subtitle}>
-          {activeMenuItem} content will be shown here when this menu item is active.
+          {t("main.placeholder", { screen: activeLabel })}
         </Text>
       </View>
     );
@@ -135,16 +159,16 @@ const MainScreen = () => {
           <View style={styles.menuContainer}>
             {menuItems.map((item) => {
               const IconComponent = item.icon;
-              const isActive = activeMenuItem === item.label;
+              const isActive = activeMenuItem === item.id;
 
               return (
                 <TouchableOpacity
                   key={item.id}
                   style={[styles.menuItem, isActive && styles.activeMenuItem]}
-                  onPress={() => handleMenuItemPress(item.label)}
+                  onPress={() => handleMenuItemPress(item.id)}
                 >
                   <IconComponent color="#081f2c" size={22} />
-                  <Text style={styles.menuItemText}>{item.label}</Text>
+                  <Text style={styles.menuItemText}>{t(item.labelKey)}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -169,7 +193,7 @@ export default MainScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#b7c7fa",
+    backgroundColor: "#f8f8f8",
   },
 
   backgroundImage: {
@@ -190,7 +214,7 @@ const styles = StyleSheet.create({
 
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#a9bdffc1",
+    backgroundColor: "#cad3efc1",
     opacity: 0.82,
   },
 

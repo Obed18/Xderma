@@ -8,10 +8,14 @@ import Animated, {
     Easing,
 } from 'react-native-reanimated';
 
-const Loader: React.FC = ({ route }: any) => {
+type Props = { route?: { params?: { image?: string } } };
+const Loader: React.FC<Props> = ({ route }) => {
     const scanPosition = useSharedValue(0);
     const clipAnim = useSharedValue(0);
     const selectedImage = route?.params?.image;
+    const imageSource = selectedImage
+      ? { uri: selectedImage }
+      : require("../assets/sd1.webp");
 
     useEffect(() => {
         scanPosition.value = withRepeat(
@@ -55,7 +59,7 @@ const Loader: React.FC = ({ route }: any) => {
         <View style={styles.container}>
         <View style={styles.loaderWrapper}>
             <ImageBackground
-                source={selectedImage || require("../assets/sd1.webp")}
+                source={imageSource}
                 style={styles.backgroundImage}
                 imageStyle={styles.imageStyle}
             >

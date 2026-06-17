@@ -18,18 +18,46 @@ import {
 } from "lucide-react-native";
 import ConfidenceCircle from "./ConfidenceCircle";
 import ProgressBar from "./ProgressBar";
+import SaveDetectionModal from "./SaveDetectionModal";
 import { useNavigation } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 
 const AnalysisCard = ({ route }: any) => {
   const [showGradCam, setShowGradCam] = useState(false);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<
+    "SkinAnalysis" | "History" | null
+  >(null);
   const navigation = useNavigation();
   const selectedImage = route?.params?.image;
   const symptoms = route?.params?.symptoms?.trim();
 
+  const promptBeforeLeaving = (destination: "SkinAnalysis" | "History") => {
+    setPendingRoute(destination);
+    setSaveModalVisible(true);
+  };
+
+  const continueToPendingRoute = () => {
+    setSaveModalVisible(false);
+
+    if (pendingRoute) {
+      navigation.navigate(pendingRoute as never);
+      setPendingRoute(null);
+    }
+  };
+
+  const closeSaveModal = () => {
+    setSaveModalVisible(false);
+    setPendingRoute(null);
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
       {/* MODEL CARD */}
       <MotiView
         from={{ opacity: 0, translateY: 20 }}
@@ -154,7 +182,7 @@ const AnalysisCard = ({ route }: any) => {
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => navigation.navigate("NewAnalysis" as never)}
+          onPress={() => promptBeforeLeaving("SkinAnalysis")}
         >
           <RotateCcw size={18} color="#fff" />
           <Text style={styles.btnText}>New Analysis</Text>
@@ -162,13 +190,21 @@ const AnalysisCard = ({ route }: any) => {
 
         <TouchableOpacity
           style={styles.secondaryBtn}
-          onPress={() => navigation.navigate("History" as never)}
+          onPress={() => promptBeforeLeaving("History")}
         >
           <FileText size={18} color="#fff" />
           <Text style={styles.btnText}>View History</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      <SaveDetectionModal
+        visible={saveModalVisible}
+        onClose={closeSaveModal}
+        onSave={continueToPendingRoute}
+        onDontSave={continueToPendingRoute}
+      />
+    </>
   );
 };
 

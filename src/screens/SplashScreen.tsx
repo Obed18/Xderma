@@ -9,11 +9,13 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useXderma } from '../context/AppContext';
 
 const { width } = Dimensions.get('window');
 
 const SplashScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { t } = useXderma();
 
   const bounce1 = useRef(new Animated.Value(0)).current;
   const bounce2 = useRef(new Animated.Value(0)).current;
@@ -60,7 +62,7 @@ const SplashScreen: React.FC = () => {
       />
 
       <Text style={styles.subtitle}>
-        Detect. Understand. Trust AI in dermatology.
+        {t('splash.subtitle')}
       </Text>
 
       <View style={styles.dotsContainer}>

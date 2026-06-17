@@ -1,9 +1,17 @@
 import React, {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  LanguageCode,
+  TranslationKey,
+  translate,
+  translations,
+} from '../i18n/translations';
 
 export interface User {
   id: string;
@@ -16,6 +24,9 @@ interface XdermaState {
   user: User | null;
   isLoggedIn: boolean;
   authLoading: boolean;
+  language: LanguageCode;
+  setLanguage: (language: LanguageCode) => Promise<void>;
+  t: (key: TranslationKey, values?: Record<string, string>) => string;
   setSearchQuery: (query: string) => void;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
@@ -28,11 +39,33 @@ interface XdermaProviderProps {
 }
 
 const XdermaContext = createContext<XdermaState | undefined>(undefined);
+const LANGUAGE_STORAGE_KEY = 'xderma_language';
+
+const isLanguageCode = (value: string): value is LanguageCode =>
+  value in translations;
 
 export const XdermaProvider = ({ children }: XdermaProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  const [language, setLanguageState] = useState<LanguageCode>('en');
   const [, setSearchQueryState] = useState('');
+
+  useEffect(() => {
+    const loadLanguage = async () => {
+      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+
+      if (savedLanguage && isLanguageCode(savedLanguage)) {
+        setLanguageState(savedLanguage);
+      }
+    };
+
+    void loadLanguage();
+  }, []);
+
+  const setLanguage = async (nextLanguage: LanguageCode) => {
+    setLanguageState(nextLanguage);
+    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+  };
 
   const setSearchQuery = (query: string) => {
     setSearchQueryState(query);
@@ -79,13 +112,17 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
       user,
       isLoggedIn: user !== null,
       authLoading,
+      language,
+      setLanguage,
+      t: (key: TranslationKey, values?: Record<string, string>) =>
+        translate(language, key, values),
       setSearchQuery,
       login,
       signup,
       logout,
       resetPassword,
     }),
-    [authLoading, user]
+    [authLoading, language, user]
   );
 
   return (

@@ -17,7 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useXderma } from "../context/AppContext";
 
 const LoginScreen: React.FC = () => {
-  const { login, signup } = useXderma();
+  const { t } = useXderma();
 
   const [isSignup, setIsSignup] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,15 +39,15 @@ const LoginScreen: React.FC = () => {
     const errs: Record<string, string> = {};
 
     if (!formData.email.trim()) {
-      errs.email = "Email is required";
+      errs.email = t("auth.emailRequired");
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errs.email = "Invalid email";
+      errs.email = t("auth.invalidEmail");
     }
 
     if (!formData.password.trim()) {
-      errs.password = "Password is required";
+      errs.password = t("auth.passwordRequired");
     } else if (formData.password.length < 6) {
-      errs.password = "Min 6 characters";
+      errs.password = t("auth.passwordMin");
     }
 
     setErrors(errs);
@@ -71,12 +71,12 @@ const LoginScreen: React.FC = () => {
         {/* ================= HEADER ================= */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            {isSignup ? "Create Account" : "Welcome Back"}
+            {isSignup ? t("auth.createAccount") : t("auth.welcomeBack")}
           </Text>
           <Text style={styles.headerSubtitle}>
             {isSignup
-              ? "Join your campus marketplace"
-              : "Login to continue"}
+              ? t("auth.joinMarketplace")
+              : t("auth.loginContinue")}
           </Text>
         </View>
 
@@ -85,7 +85,7 @@ const LoginScreen: React.FC = () => {
           <View style={styles.formCard}>
             {/* Email */}
             <View style={styles.field}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>{t("auth.email")}</Text>
               <View
                 style={[
                   styles.inputContainer,
@@ -95,7 +95,7 @@ const LoginScreen: React.FC = () => {
                 <Mail size={20} color="#9CA3AF" style={styles.icon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="youremail@example.com"
+                  placeholder={t("auth.emailPlaceholder")}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={formData.email}
@@ -111,7 +111,7 @@ const LoginScreen: React.FC = () => {
 
             {/* Password */}
             <View style={styles.field}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>{t("auth.password")}</Text>
               <View
                 style={[
                   styles.inputContainer,
@@ -121,7 +121,7 @@ const LoginScreen: React.FC = () => {
                 <Lock size={20} color="#9CA3AF" style={styles.icon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter password"
+                  placeholder={t("auth.passwordPlaceholder")}
                   secureTextEntry
                   value={formData.password}
                   onChangeText={(text) =>
@@ -134,7 +134,7 @@ const LoginScreen: React.FC = () => {
               )}
             <TouchableOpacity style={styles.toggleButton} onPress={handleForgot} >
                     <Text style={styles.resetLink}>
-                      Forgot Password?
+                      {t("auth.forgotPassword")}
                     </Text>
             </TouchableOpacity>
             </View>
@@ -145,8 +145,8 @@ const LoginScreen: React.FC = () => {
                 <ActivityIndicator size="large" color="#FF6B00" />
                 <Text style={styles.loadingText}>
                   {isSignup
-                    ? "Creating account..."
-                    : "Logging in..."}
+                    ? t("auth.creatingAccount")
+                    : t("auth.loggingIn")}
                 </Text>
               </View>
             ) : (
@@ -155,7 +155,7 @@ const LoginScreen: React.FC = () => {
                 onPress={handleSubmit}
               >
                 <Text style={styles.submitText}>
-                  {isSignup ? "Sign Up" : "Login"}
+                  {isSignup ? t("auth.signUp") : t("auth.login")}
                 </Text>
               </TouchableOpacity>
             )}
@@ -169,16 +169,16 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.toggleText}>
                 {isSignup ? (
                   <>
-                    Already have an account?{" "}
+                    {t("auth.alreadyHaveAccount")}{" "}
                     <Text style={styles.linkText}>
-                      Log in
+                      {t("auth.login")}
                     </Text>
                   </>
                 ) : (
                   <>
-                    Don't have an account?{" "}
+                    {t("auth.doNotHaveAccount")}{" "}
                     <Text style={styles.linkText}>
-                      Sign up
+                      {t("auth.signUp")}
                     </Text>
                   </>
                 )}

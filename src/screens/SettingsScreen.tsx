@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
+import { useXderma } from "../context/AppContext";
 import {
   Settings,
   HelpCircle,
@@ -23,7 +24,7 @@ import {
   Award,
   Bell,
   Gift,
-  CheckCircle, List, Heart, AlertTriangle,
+  CheckCircle, List, Heart, AlertTriangle, Globe,
 } from "lucide-react-native";
 
 type ProfileView =
@@ -33,23 +34,23 @@ type ProfileView =
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { t } = useXderma();
 
   const [view, setView] = useState<ProfileView>("main");
-  const [copiedReferral, setCopiedReferral] = useState(false);
 
 
   if (view === "settings") {
     return (
       <ScrollView contentContainerStyle={styles.container}>
         <BackHeader
-          title="Settings"
+          title={t("settings.settings")}
           onBack={() => setView("main")}
         />
         <View style={styles.card}>
           <SettingsItem
             icon={<Edit size={18} />}
-            label="Edit Profile"
-            desc="Update your name, photo, and bio"
+            label={t("settings.editProfile")}
+            desc={t("settings.editProfileDesc")}
           />
 
           {/* Region */}
@@ -60,7 +61,7 @@ const ProfileScreen: React.FC = () => {
               </IconBox>
               <View>
                 <Text style={styles.itemTitle}>
-                  Change Region
+                  {t("settings.changeRegion")}
                 </Text>
               </View>
             </View>
@@ -75,24 +76,24 @@ const ProfileScreen: React.FC = () => {
             </ScrollView>
           </View>
 
-          <SettingsItem icon={<Shield size={18} />} label="Verify Account"/>
+          <SettingsItem icon={<Shield size={18} />} label={t("settings.verifyAccount")}/>
 
           <SettingsItem
             icon={<Lock size={18} />}
-            label="Privacy"
-            desc="Manage your privacy settings"
+            label={t("settings.privacy")}
+            desc={t("settings.privacyDesc")}
           />
 
           <SettingsItem
             icon={<Bell size={18} />}
-            label="Notifications"
-            desc="Push notification preferences"
+            label={t("settings.notifications")}
+            desc={t("settings.notificationsDesc")}
           />
 
           <SettingsItem
             icon={<Trash2 size={18} />}
-            label="Delete Account"
-            desc="Permanently delete your account"
+            label={t("settings.deleteAccount")}
+            desc={t("settings.deleteAccountDesc")}
             danger
           />
         </View>
@@ -106,7 +107,7 @@ const ProfileScreen: React.FC = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>{t("settings.profile")}</Text>
 
         <View style={styles.profileContainer}>
     <Image source={require("../assets/account.png")} style={styles.profileImage}
@@ -118,40 +119,41 @@ const ProfileScreen: React.FC = () => {
       <View style={styles.card}>
         <MenuItem
           icon={<Settings size={18} />}
-          label="Settings"
+          label={t("settings.settings")}
           onClick={() => setView("settings")}
         />
 
         <MenuItem
-          icon={<List size={18} />}
-          label="My Listings"
-          desc="View all your existing listings"
-          onClick={() => navigation.navigate('MyListings')}
+          icon={<Lock size={18} />}
+          label={t("settings.privacy")}
+          desc={t("settings.privacyDesc")}
+          onClick={() => navigation.navigate('Privacy')}
         />
 
         <MenuItem
-          icon={<Heart size={18} />}
-          label="Saved Items"
-          desc="View all your saved items"
-          onClick={() => navigation.navigate('Favorites')}
+          icon={<Bell size={18} />}
+          label={t("settings.notifications")}
+          desc={t("settings.notifications")}
+          onClick={() => navigation.navigate('NotificationSettings')}
         />
 
 
         <MenuItem
           icon={<HelpCircle size={18} />}
-          label="Help Center"
+          label={t("settings.helpCenter")}
           onClick={() => navigation.navigate('HelpCenter')}
         />
 
         <MenuItem
-          icon={<Gift size={18} />}
-          label="Invite Friends"
-          desc="Earn GHS 5 per referral"
+          icon={<Globe size={18} />}
+          label={t("settings.language")}
+          desc={t("settings.languageDesc")}
+          onClick={() => navigation.navigate('Language')}
         />
 
         <TouchableOpacity style={styles.logoutBtn}>
           <LogOut size={18} color="#ef4444" />
-          <Text style={styles.logoutText}>Log Out</Text>
+          <Text style={styles.logoutText}>{t("settings.logout")}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -234,7 +236,12 @@ const SettingsItem: React.FC<any> = ({
    🎨 STYLES
 ========================================================= */
 const styles = StyleSheet.create({
-  container: { paddingBottom: 16 },
+  container: { 
+    flex: 1,
+    backgroundColor: "#0B1B2B",
+    borderTopRightRadius: 24,
+    borderTopLeftRadius: 24,
+},
   center: {
     flex: 1,
     alignItems: "center",
@@ -242,13 +249,14 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   header: {
-    backgroundColor: "#FF6B00",
+    backgroundColor: "#0B1B2B",
     paddingBottom: 30,
     paddingTop: 50,
-    borderBottomLeftRadius: 50,
-    borderBottomRightRadius: 50,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     width: "100%",
-    marginBottom: 20,
+    borderBottomColor: "#838484",
+    borderBottomWidth: 0.3,
   },
   title: {
     color: "#FFF",
@@ -277,38 +285,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     marginRight: 8,
-  },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#22C55E",
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  badgeVerified: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#22C55E",
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 10,
-  },
-  badgeNotVerified: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F59E0B",
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 10,
-  },
-  badgeText: {
-    color: "#FFF",
-    fontSize: 12,
-    marginLeft: 4,
-    fontWeight: "600",
   },
   email: {
     color: "#FFF",
@@ -341,10 +317,8 @@ const styles = StyleSheet.create({
   primaryText: { color: "#fff", fontWeight: "600" },
 
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: "#0B1B2B",
     padding: 12,
-    marginBottom: 16,
   },
 
   menuItem: {
@@ -363,8 +337,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  itemTitle: { fontWeight: "600", fontSize: 14 },
-  itemDesc: { fontSize: 12, color: "#666" },
+  itemTitle: { fontWeight: "600", fontSize: 14, color: "#fff", },
+  itemDesc: { fontSize: 12, color: "#bababa" },
 
   logoutBtn: {
     flexDirection: "row",

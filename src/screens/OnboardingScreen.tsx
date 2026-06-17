@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { HelpCircle } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useXderma } from '../context/AppContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,6 +25,7 @@ const OnboardingScreen: React.FC = () => {
   const fade = useSharedValue(0);
   const translateY = useSharedValue(40);
   const navigation = useNavigation<any>();
+  const { t } = useXderma();
 
   const bottomSheetY = useSharedValue(200);
 
@@ -81,25 +83,25 @@ const handleLogin = () => {
           />
         </View>
 
-        <Text style={styles.title}>Deep Learning and Explainable AI</Text>
+        <Text style={styles.title}>{t('onboarding.title')}</Text>
         <Text style={styles.subtitle}>
-          An Intelligent Skin Disease Detection and Clinical Decision Support System Using 
+          {t('onboarding.subtitle')}
         </Text>
       </Animated.View>
 
       {/* Bottom Sheet */}
       <Animated.View style={[styles.bottomSheet, animatedBottom]}>
         <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-          <Text style={styles.loginText}>Tap to Log In</Text>
+          <Text style={styles.loginText}>{t('onboarding.login')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.outlineBtn} onPress={handleForgot}>
-          <Text style={styles.outlineText}>Forgot Password</Text>
+          <Text style={styles.outlineText}>{t('onboarding.forgotPassword')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.helpRow} onPress={handleHelp}>
           <HelpCircle size={16} color="#666" />
-          <Text style={styles.helpText}> Need help? Tap here.</Text>
+          <Text style={styles.helpText}> {t('onboarding.help')}</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>
