@@ -3,10 +3,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 import SplashScreen from '../screens/SplashScreen';
-import OnboardingScreen from '../screens/OnboardingScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
-import MainScreen from '../screens/MainScreen';
+import Main from './BottomTabNavigator';
 import SkinAnalysisScreen from '../screens/SkinAnalysisScreen';
 import AnalysisCard from '../screens/AnalysisCard';
 import PasswordResetScreen from '../screens/PasswordResetScreen';
@@ -31,7 +31,7 @@ const AppNavigator = () => {
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />      
       <Stack.Screen name="Login" component={LoginScreen} />      
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Main" component={MainScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Main" component={Main} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="History" component={HistoryScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Language" component={LanguageScreen} 

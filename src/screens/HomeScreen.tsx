@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  ScrollView, ImageBackground,
+  ScrollView, ImageBackground, StatusBar,
 } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
 import {
@@ -32,6 +32,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       {/* 🔽 MAIN CONTENT (slides down) */}
       <MotiView
         animate={{
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B1B2B",
     borderTopRightRadius: 24,
     borderTopLeftRadius: 24,
-    paddingTop: 35,
+    paddingTop: 50,
   },
   main: {
     flex: 1,
@@ -182,6 +183,7 @@ const styles = StyleSheet.create({
   heroCard: {
     backgroundColor: "#0f243877",
     borderRadius: 20,
+    marginTop: 20,
   },
   imageStyle: {
     opacity: 0.3,
@@ -262,7 +264,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 20,
+    marginVertical: 50,
   },
 
   statBox: {
@@ -287,7 +289,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1F3A5F",
     borderRadius: 16,
-    padding: 25,
+    padding: 15,
     marginBottom: 15,
     backgroundColor: "#12263A",
     gap: 12,
@@ -300,13 +302,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 18,
+    fontSize: 14,
     fontFamily: 'Poppins_600SemiBold',
   },
 
   cardDesc: {
     color: "#9CA3AF",
-    fontSize: 15,
+    fontSize: 12,
     marginTop: 4,
     maxWidth: width * 0.7,
     fontFamily: 'Poppins_400Regular',

@@ -166,10 +166,12 @@ const styles = StyleSheet.create({
         backgroundColor: "#0F172A",
         borderTopRightRadius: 24,
         borderTopLeftRadius: 24,
+        marginBottom: 30,
     },
 
     header: {
         padding: 16,
+        paddingTop: 60,
         borderRadius: 16,
         flexDirection: "row",
         justifyContent: "space-between",

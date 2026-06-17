@@ -151,6 +151,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0B1B2B",
+    paddingVertical: 50,
+    marginBottom: 30,
   },
 
   header: {
@@ -223,6 +225,8 @@ const styles = StyleSheet.create({
 
   dangerButton: {
     backgroundColor: "#2A0D0D",
+    borderWidth: 1,
+    borderColor: "#FF5252",
     padding: 16,
     borderRadius: 16,
     marginTop: 10,

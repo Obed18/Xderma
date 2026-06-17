@@ -1,109 +1,100 @@
-import React, { useEffect } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   Image,
   TouchableOpacity,
+  StyleSheet,
   Dimensions,
-  StatusBar,
-} from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-  Easing,
-} from 'react-native-reanimated';
-import { HelpCircle } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useXderma } from '../context/AppContext';
+} from "react-native";
+import { useNavigation, type NavigationProp } from "@react-navigation/native";
 
-const { width, height } = Dimensions.get('window');
-
-const OnboardingScreen: React.FC = () => {
-  const fade = useSharedValue(0);
-  const translateY = useSharedValue(40);
-  const navigation = useNavigation<any>();
-  const { t } = useXderma();
-
-  const bottomSheetY = useSharedValue(200);
-
-  useEffect(() => {
-    fade.value = withTiming(1, { duration: 800 });
-    translateY.value = withTiming(0, {
-      duration: 800,
-      easing: Easing.out(Easing.exp),
-    });
-
-    bottomSheetY.value = withDelay(
-      400,
-      withTiming(0, {
-        duration: 700,
-        easing: Easing.out(Easing.exp),
-      })
-    );
-  }, []);
-
-  const animatedHeader = useAnimatedStyle(() => ({
-    opacity: fade.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const animatedBottom = useAnimatedStyle(() => ({
-    transform: [{ translateY: bottomSheetY.value }],
-  }));
-
-const handleLogin = () => {
-  navigation.navigate('Login');
+type RootStackParamList = {
+  Splash: undefined;
+  Onboarding: undefined;
+  Login: undefined;
+  Home: undefined;
+  Main: undefined;
+  Settings: undefined;
+  History: undefined;
+  Language: undefined;
+  Privacy: undefined;
+  HelpCenter: undefined;
+  NotificationSettings: undefined;
+  SkinAnalysis: undefined;
+  Reset: undefined;
+  ResultsScreen: undefined;
 };
 
-  const handleForgot = () => {
-  navigation.navigate('Reset');
+const { width } = Dimensions.get("window");
+
+const slides = [
+  {
+    image:
+      "../assets/face-scan.png",
+    title: "Take Live Pictures to Scan Your Skin",
+    description: "Use your camera to capture real-time images and get instant AI-powered skin analysis.",
+  },
+  {
+    image:
+      "../assets/hand-scan.png",
+    title: "Upload Skin Images for Analysis",
+    description: "Upload photos of your skin from your gallery to get instant AI-powered detection and insights.",
+  },
+  {
+    image:
+      "../assets/ai-scan.png",
+    title: "AI Skin Issue Detection",
+    description: "Our AI analyzes your skin images to identify possible conditions and provide early insights into potential issues.",
+  },
+];
+
+export const OnboardingScreen = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+  const handleNext = () => {
+    if (currentSlide < slides.length - 1) {
+      setCurrentSlide(currentSlide + 1);
+    } else {
+      navigation.navigate("Login");
+    }
   };
 
-  const handleHelp = () => {
-  navigation.navigate('Help');
-  };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <View style={styles.content}>
+        <Image
+          source={{ uri: slides[currentSlide].image }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+        <Text style={styles.title}>{slides[currentSlide].title}</Text>
+        <Text style={styles.description}>
+          {slides[currentSlide].description}
+        </Text>
+      </View>
 
-      {/* Background */}
-      <View style={styles.redBackground} />
-
-      {/* Header Content */}
-      <Animated.View style={[styles.centerContent, animatedHeader]}>
-        <View style={styles.logoRow}>
-          <Image
-            source={require('../assets/logo.png')} // replace
-            style={styles.logo}
-            resizeMode="contain"
-          />
+      <View style={styles.bottomSection}>
+        <View style={styles.indicatorContainer}>
+          {slides.map((_, idx) => (
+            <View
+              key={idx}
+              style={[
+                styles.indicator,
+                idx === currentSlide && styles.activeIndicator,
+              ]}
+            />
+          ))}
         </View>
 
-        <Text style={styles.title}>{t('onboarding.title')}</Text>
-        <Text style={styles.subtitle}>
-          {t('onboarding.subtitle')}
-        </Text>
-      </Animated.View>
-
-      {/* Bottom Sheet */}
-      <Animated.View style={[styles.bottomSheet, animatedBottom]}>
-        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-          <Text style={styles.loginText}>{t('onboarding.login')}</Text>
+        <TouchableOpacity style={styles.button} onPress={handleNext}>
+          <Text style={styles.buttonText}>
+            {currentSlide === slides.length - 1 ? "Get Started" : "Next"}
+          </Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.outlineBtn} onPress={handleForgot}>
-          <Text style={styles.outlineText}>{t('onboarding.forgotPassword')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.helpRow} onPress={handleHelp}>
-          <HelpCircle size={16} color="#666" />
-          <Text style={styles.helpText}> {t('onboarding.help')}</Text>
-        </TouchableOpacity>
-      </Animated.View>
+      </View>
     </View>
   );
 };
@@ -111,98 +102,68 @@ const handleLogin = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#CDD9FF',
+    backgroundColor: "#fff",
+    padding: 24,
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-
-  redBackground: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#CDD9FF',
-  },
-
-  centerContent: {
+  content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+    justifyContent: "center",
   },
-
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+  image: {
+    width: width * 0.8,
+    height: width * 0.8,
+    marginBottom: 24,
   },
-
-  logo: {
-    width: 150,
-    height: 150,
-  },
-
   title: {
-    fontSize: 18,
-    color: '#0F172A',
-    marginTop: 10,
-    textAlign: 'center',
-    fontFamily: 'Poppins_700Bold',
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#111",
+    textAlign: "center",
+    marginBottom: 12,
   },
-
-  subtitle: {
-    fontSize: 14,
-    color: '#0A9DED',
-    marginTop: 6,
-    opacity: 0.9,
-    textAlign: 'center',
-    fontFamily: 'Poppins_400Regular',
-  },
-
-  bottomSheet: {
-    backgroundColor: '#eee',
-    padding: 30,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    alignItems: 'center',
-    paddingBottom: 70,
-    paddingTop: 60,
-  },
-
-  loginBtn: {
-    backgroundColor: '#0A9DED',
-    width: '90%',
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-
-  loginText: {
-    color: '#fff',
+  description: {
     fontSize: 16,
-    fontFamily: 'Poppins_600semiBold',
+    color: "#666",
+    textAlign: "center",
+    marginHorizontal: 16,
+    marginBottom: 24,
   },
-
-  outlineBtn: {
-    width: '90%',
+  bottomSection: {
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+  },
+  indicatorContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  indicator: {
+    height: 8,
+    width: 8,
+    borderRadius: 4,
+    backgroundColor: "#d1d5db",
+    marginHorizontal: 4,
+  },
+  activeIndicator: {
+    width: 24,
+    backgroundColor: "#0A9DED",
+  },
+  button: {
+    backgroundColor: "#0A9DED",
     paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#0A9DED',
-    alignItems: 'center',
-    marginBottom: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    width: "100%",
   },
-
-  outlineText: {
-    color: '#0A9DED',
-    fontSize: 15,
-    fontFamily: 'Poppins_600semiBold',
-  },
-
-  helpRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  helpText: {
-    fontSize: 13,
-    color: '#555',
-    fontFamily: 'Poppins_400Regular',
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
-
-export default OnboardingScreen;
