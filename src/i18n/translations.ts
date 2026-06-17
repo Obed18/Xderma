@@ -18,7 +18,7 @@ export type TranslationKey =
   | "nav.privacy"
   | "nav.help"
   | "nav.notifications"
-  | "nav.createListing"
+  | "nav.analyzeSkin"
   | "nav.passwordReset"
   | "nav.results"
   | "splash.subtitle"
@@ -109,7 +109,7 @@ const english: TranslationMap = {
   "nav.privacy": "Privacy",
   "nav.help": "Help Center",
   "nav.notifications": "Notifications",
-  "nav.createListing": "Create Listing",
+  "nav.analyzeSkin": "Analyze Skin",
   "nav.passwordReset": "Password Reset",
   "nav.results": "Results",
   "splash.subtitle": "Detect. Understand. Trust AI in dermatology.",
@@ -201,7 +201,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "Confidentialite",
     "nav.help": "Centre d'aide",
     "nav.notifications": "Notifications",
-    "nav.createListing": "Creer une analyse",
+    "nav.analyzeSkin": "analyser la peau",
     "nav.passwordReset": "Reinitialiser le mot de passe",
     "nav.results": "Resultats",
     "splash.subtitle": "Detecter. Comprendre. Faire confiance a l'IA en dermatologie.",
@@ -278,7 +278,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "Privacidad",
     "nav.help": "Centro de ayuda",
     "nav.notifications": "Notificaciones",
-    "nav.createListing": "Crear analisis",
+    "nav.analyzeSkin": "Analizar piel",
     "nav.passwordReset": "Restablecer contrasena",
     "nav.results": "Resultados",
     "splash.subtitle": "Detecta. Comprende. Confia en la IA en dermatologia.",
@@ -355,7 +355,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "Datenschutz",
     "nav.help": "Hilfezentrum",
     "nav.notifications": "Benachrichtigungen",
-    "nav.createListing": "Analyse erstellen",
+    "nav.analyzeSkin": "Analyse erstellen",
     "nav.passwordReset": "Passwort zuruecksetzen",
     "nav.results": "Ergebnisse",
     "splash.subtitle": "Erkennen. Verstehen. KI in der Dermatologie vertrauen.",
@@ -432,7 +432,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "Privacy",
     "nav.help": "Centro assistenza",
     "nav.notifications": "Notifiche",
-    "nav.createListing": "Crea analisi",
+    "nav.analyzeSkin": "Analizza pelle",
     "nav.passwordReset": "Reimposta password",
     "nav.results": "Risultati",
     "splash.subtitle": "Rileva. Comprendi. Fidati dell'IA in dermatologia.",
@@ -509,7 +509,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "Privacidade",
     "nav.help": "Central de ajuda",
     "nav.notifications": "Notificacoes",
-    "nav.createListing": "Criar analise",
+    "nav.analyzeSkin": "Analizar pele",
     "nav.passwordReset": "Redefinir senha",
     "nav.results": "Resultados",
     "splash.subtitle": "Detecte. Entenda. Confie na IA em dermatologia.",
@@ -586,7 +586,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "الخصوصية",
     "nav.help": "مركز المساعدة",
     "nav.notifications": "الإشعارات",
-    "nav.createListing": "إنشاء تحليل",
+    "nav.analyzeSkin": "تحليل الجلد",
     "nav.passwordReset": "إعادة تعيين كلمة المرور",
     "nav.results": "النتائج",
     "splash.subtitle": "اكتشف. افهم. ثق بالذكاء الاصطناعي في الأمراض الجلدية.",
@@ -657,7 +657,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "隐私",
     "nav.help": "帮助中心",
     "nav.notifications": "通知",
-    "nav.createListing": "创建分析",
+    "nav.analyzeSkin": "分析皮肤",
     "nav.passwordReset": "重置密码",
     "nav.results": "结果",
     "splash.subtitle": "检测。理解。信任皮肤科 AI。",
@@ -728,7 +728,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "गोपनीयता",
     "nav.help": "सहायता केंद्र",
     "nav.notifications": "सूचनाएं",
-    "nav.createListing": "विश्लेषण बनाएं",
+    "nav.analyzeSkin": "विश्लेषण बनाएं",
     "nav.passwordReset": "पासवर्ड रीसेट",
     "nav.results": "परिणाम",
     "splash.subtitle": "पहचानें। समझें। त्वचा विज्ञान में AI पर भरोसा करें।",
@@ -799,7 +799,7 @@ export const translations: Record<LanguageCode, Partial<TranslationMap>> = {
     "nav.privacy": "Faragha",
     "nav.help": "Kituo cha msaada",
     "nav.notifications": "Arifa",
-    "nav.createListing": "Unda uchambuzi",
+    "nav.analyzeSkin": "Chambua ngozi",
     "nav.passwordReset": "Weka nenosiri upya",
     "nav.results": "Matokeo",
     "splash.subtitle": "Tambua. Elewa. Iamini AI katika dermatolojia.",

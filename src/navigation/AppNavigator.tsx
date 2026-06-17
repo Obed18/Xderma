@@ -77,7 +77,7 @@ const AppNavigator = () => {
       <Stack.Screen name="SkinAnalysis" component={SkinAnalysisScreen}
         options={{
             headerShown: true, 
-            title: t('nav.createListing'),
+            title: t('nav.analyzeSkin'),
             headerStyle: { backgroundColor: '#bcccff' },
             headerTintColor: '#0F172A',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },

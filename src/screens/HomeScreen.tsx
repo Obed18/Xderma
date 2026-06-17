@@ -5,8 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  ScrollView, ImageBackground, StatusBar,
+  ScrollView, ImageBackground, StatusBar, 
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { MotiView, AnimatePresence } from "moti";
 import {
   Menu,
@@ -19,6 +20,8 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import DisclaimerModal from "./DisclaimerModal";
 import { useXderma } from "../context/AppContext";
+import { Ionicons } from "@expo/vector-icons";
+
 
 const { width } = Dimensions.get("window");
 
@@ -33,6 +36,19 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
+        <BlurView intensity={50} style={styles.mainHeader}>
+            <View>
+            <Text style={styles.Headertitle}>Home</Text>
+            <Text style={styles.Headersubtitle}>
+                Skin Care with AI dermatology analysis
+            </Text>
+            </View>
+
+            <View style={styles.headerIcons}>
+                <Ionicons name="search" size={22} color="#fff" />
+                <Ionicons name="options-outline" size={22} color="#fff" />
+            </View>
+        </BlurView>
       {/* 🔽 MAIN CONTENT (slides down) */}
       <MotiView
         animate={{
@@ -159,8 +175,35 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B1B2B",
     borderTopRightRadius: 24,
     borderTopLeftRadius: 24,
-    paddingTop: 50,
+    paddingBottom: 100,
   },
+    mainHeader: {
+        padding: 16,
+        paddingTop: 60,
+        borderRadius: 16,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 16,
+        borderTopRightRadius: 24,
+        borderTopLeftRadius: 24,
+    },
+
+    Headertitle: {
+        color: "#fff",
+        fontSize: 22,
+        fontWeight: "bold",
+    },
+
+    Headersubtitle: {
+        color: "#9CA3AF",
+        fontSize: 13,
+    },
+
+    headerIcons: {
+        flexDirection: "row",
+        gap: 12,
+    },
+
   main: {
     flex: 1,
     paddingHorizontal: 16,

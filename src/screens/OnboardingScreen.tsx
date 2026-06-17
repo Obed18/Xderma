@@ -30,20 +30,17 @@ const { width } = Dimensions.get("window");
 
 const slides = [
   {
-    image:
-      "../assets/face-scan.png",
+    image: require("../assets/face-scan.png"),
     title: "Take Live Pictures to Scan Your Skin",
     description: "Use your camera to capture real-time images and get instant AI-powered skin analysis.",
   },
   {
-    image:
-      "../assets/hand-scan.png",
+    image: require("../assets/hand-scan.png"),
     title: "Upload Skin Images for Analysis",
     description: "Upload photos of your skin from your gallery to get instant AI-powered detection and insights.",
   },
   {
-    image:
-      "../assets/ai-scan.png",
+    image: require("../assets/ai-scan.png"),
     title: "AI Skin Issue Detection",
     description: "Our AI analyzes your skin images to identify possible conditions and provide early insights into potential issues.",
   },
@@ -66,7 +63,7 @@ export const OnboardingScreen = () => {
     <View style={styles.container}>
       <View style={styles.content}>
         <Image
-          source={{ uri: slides[currentSlide].image }}
+          source={slides[currentSlide].image}
           style={styles.image}
           resizeMode="cover"
         />
@@ -102,7 +99,7 @@ export const OnboardingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#0B1B2B",
     padding: 24,
     justifyContent: "space-between",
     alignItems: "center",
@@ -122,13 +119,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111",
+    color: "#d9d9d9",
     textAlign: "center",
     marginBottom: 12,
   },
   description: {
     fontSize: 16,
-    color: "#666",
+    color: "#b0b0b0",
     textAlign: "center",
     marginHorizontal: 16,
     marginBottom: 24,
