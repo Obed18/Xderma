@@ -8,10 +8,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  ActivityIndicator, ImageBackground, Dimensions,
 } from "react-native";
 import { Mail, Lock, User } from "lucide-react-native";
 import { useNavigation } from '@react-navigation/native';
+
+const { width, height } = Dimensions.get("window");
+
 
 
 import { useXderma } from "../context/AppContext";
@@ -68,6 +71,11 @@ const LoginScreen: React.FC = () => {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ImageBackground
+        source={require("../assets/Background.png")}
+        style={styles.backgroundImage}
+        imageStyle={styles.imageStyle}
+      >
         {/* ================= HEADER ================= */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
@@ -96,6 +104,7 @@ const LoginScreen: React.FC = () => {
                 <TextInput
                   style={styles.input}
                   placeholder={t("auth.emailPlaceholder")}
+                  placeholderTextColor="#7C8BA1"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={formData.email}
@@ -122,6 +131,7 @@ const LoginScreen: React.FC = () => {
                 <TextInput
                   style={styles.input}
                   placeholder={t("auth.passwordPlaceholder")}
+                  placeholderTextColor="#7C8BA1"
                   secureTextEntry
                   value={formData.password}
                   onChangeText={(text) =>
@@ -142,7 +152,7 @@ const LoginScreen: React.FC = () => {
             {/* Loader / Button */}
             {loading ? (
               <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#FF6B00" />
+                <ActivityIndicator size="large" color="#009dff" />
                 <Text style={styles.loadingText}>
                   {isSignup
                     ? t("auth.creatingAccount")
@@ -186,6 +196,7 @@ const LoginScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
+      </ImageBackground>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -194,11 +205,21 @@ const LoginScreen: React.FC = () => {
 /* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#0B1B2B" },
   scrollContainer: { flexGrow: 1 },
+  backgroundImage: {
+    flex: 1,
+    width,
+    height,
+  },
+
+  imageStyle: {
+    opacity: 0.12,
+    resizeMode: "cover",
+  },
 
   header: {
-    backgroundColor: "#CDD9FF",
+    backgroundColor: "#7C8BA1",
     paddingVertical: 100,
     paddingHorizontal: 30,
     borderBottomRightRadius: 20,
@@ -206,14 +227,14 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    color: "#0F172A",
+    color: "#e5edff",
     fontSize: 28,
     marginBottom: 6,
     fontFamily: 'Poppins_700Bold',
   },
 
   headerSubtitle: {
-    color: "#0F172A",
+    color: "#dfe4f1",
     opacity: 0.9,
     fontSize: 15,
     fontFamily: 'Poppins_400Regular',
@@ -226,11 +247,11 @@ const styles = StyleSheet.create({
   },
 
   formCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#1a344d",
     borderRadius: 24,
     padding: 20,
     elevation: 8,
-    shadowColor: "#000",
+    shadowColor: "#6e6d6d",
     shadowOpacity: 0.1,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -240,7 +261,7 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#a4acbb",
     marginBottom: 8,
     fontFamily: 'Poppins_400Regular',
   },
@@ -248,15 +269,15 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F7",
+    backgroundColor: "#0B1B2B",
     borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 15,
   },
 
   inputError: {
     borderWidth: 1,
-    borderColor: "#05496e",
+    borderColor: "#c91010",
   },
 
   icon: { marginRight: 8 },
@@ -264,12 +285,12 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: "#111827",
+    color: "#ced3dd",
     fontFamily: 'Poppins_400Regular',
   },
 
   errorText: {
-    color: "#05496e",
+    color: "#c91717",
     fontSize: 12,
     marginTop: 6,
     fontFamily: 'Poppins_400Regular',
@@ -312,7 +333,7 @@ const styles = StyleSheet.create({
 
   toggleText: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#9ea4b0",
     fontFamily: 'Poppins_400Regular',
   },
 
