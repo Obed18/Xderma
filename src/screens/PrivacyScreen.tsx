@@ -5,8 +5,9 @@ import {
   StyleSheet,
   Switch,
   TouchableOpacity,
-  ScrollView,
+  ScrollView, 
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
 
 type PrivacyIconName = keyof typeof Ionicons.glyphMap;
@@ -64,12 +65,19 @@ const PrivacyScreen = () => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Privacy & Security</Text>
-        <Text style={styles.headerSubtitle}>
-          Your data, your control
-        </Text>
-      </View>
+        <BlurView intensity={50} style={styles.header}>
+            <View>
+            <Text style={styles.title}>Privacy & Security</Text>
+            <Text style={styles.subtitle}>
+                Your data, your control
+            </Text>
+            </View>
+
+            {/* <View style={styles.headerIcons}>
+                <Ionicons name="search" size={22} color="#fff" />
+                <Ionicons name="options-outline" size={22} color="#fff" />
+            </View> */}
+        </BlurView>
 
       {/* Data Usage */}
       <Section title="Data Usage">
@@ -151,13 +159,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0B1B2B",
-    paddingVertical: 50,
+    paddingBottom: 50,
     marginBottom: 30,
   },
 
   header: {
-    padding: 20,
-    paddingTop: 60,
+        padding: 16,
+        paddingTop: 50,
+        borderRadius: 16,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 16,
   },
 
   headerTitle: {

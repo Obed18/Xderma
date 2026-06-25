@@ -15,13 +15,44 @@ import {
   RotateCcw,
   FileText,
   Info,
+  ShieldAlert,
+  Stethoscope,
 } from "lucide-react-native";
 import ConfidenceCircle from "./ConfidenceCircle";
 import ProgressBar from "./ProgressBar";
 import SaveDetectionModal from "./SaveDetectionModal";
 import { useNavigation } from "@react-navigation/native";
+import { SkinPrediction } from "../services/skinAnalysisApi";
 
 const { width } = Dimensions.get("window");
+
+const CLASS_DESCRIPTIONS: Record<string, string> = {
+  akiec: "A rough, scaly lesion pattern associated with sun exposure and pre-cancerous change.",
+  bcc: "A common skin cancer pattern that usually grows slowly but should be medically reviewed.",
+  bkl: "A benign keratosis pattern, often linked with non-cancerous skin growths.",
+  df: "A dermatofibroma pattern, commonly a benign firm skin growth.",
+  mel: "A melanoma-like pattern. Melanoma can be serious and needs prompt clinical review.",
+  nv: "A melanocytic nevus pattern, commonly associated with ordinary moles.",
+  vasc: "A vascular lesion pattern, including angiomas and related blood-vessel lesions.",
+};
+
+const getConfidencePercent = (prediction?: SkinPrediction) => {
+  if (!prediction) return 0;
+  return Math.round((prediction.confidence || 0) * 100);
+};
+
+const getRiskLevel = (prediction?: SkinPrediction) => {
+  if (!prediction) return "Unavailable";
+  if (prediction.risk_level) return prediction.risk_level;
+  return prediction.is_malignant ? "High" : "Low";
+};
+
+const getRiskColor = (riskLevel: string) => {
+  if (riskLevel.toLowerCase() === "high") return "#EF4444";
+  if (riskLevel.toLowerCase() === "medium") return "#F59E0B";
+  if (riskLevel.toLowerCase() === "low") return "#22C55E";
+  return "#94A3B8";
+};
 
 const AnalysisCard = ({ route }: any) => {
   const [showGradCam, setShowGradCam] = useState(false);
@@ -29,9 +60,18 @@ const AnalysisCard = ({ route }: any) => {
   const [pendingRoute, setPendingRoute] = useState<
     "SkinAnalysis" | "History" | null
   >(null);
-  const navigation = useNavigation();
-  const selectedImage = route?.params?.image;
+  const navigation = useNavigation<any>();
+  const selectedImage = route?.params?.image as string | undefined;
   const symptoms = route?.params?.symptoms?.trim();
+  const prediction = route?.params?.prediction as SkinPrediction | undefined;
+  const confidence = getConfidencePercent(prediction);
+  const riskLevel = getRiskLevel(prediction);
+  const riskColor = getRiskColor(riskLevel);
+  const topProbabilities = prediction?.all_probabilities?.slice(0, 5) || [];
+  const description = prediction
+    ? CLASS_DESCRIPTIONS[prediction.predicted_class] ||
+      "The AI model matched the image to this lesion class based on visual patterns learned from HAM10000."
+    : "No prediction data was received. Please run a new analysis when the AI backend is available.";
 
   const promptBeforeLeaving = (destination: "SkinAnalysis" | "History") => {
     setPendingRoute(destination);
@@ -42,7 +82,7 @@ const AnalysisCard = ({ route }: any) => {
     setSaveModalVisible(false);
 
     if (pendingRoute) {
-      navigation.navigate(pendingRoute as never);
+      navigation.navigate(pendingRoute);
       setPendingRoute(null);
     }
   };
@@ -58,144 +98,140 @@ const AnalysisCard = ({ route }: any) => {
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
       >
-      {/* MODEL CARD */}
-      <MotiView
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: "timing", duration: 500 }}
-        style={styles.modelCard}
-      >
-        <View style={styles.imageWrapper}>
-          <Image
-            source={selectedImage || require("../assets/sd1.webp")}
-            style={styles.image}
-          />
-          {showGradCam && (
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 500 }}
+          style={styles.modelCard}
+        >
+          <View style={styles.imageWrapper}>
             <Image
-              source={require("../assets/heatmap.png")}
-              style={styles.heatmapOverlay}
+              source={selectedImage ? { uri: selectedImage } : require("../assets/sd1.webp")}
+              style={styles.image}
             />
+            {showGradCam && (
+              <Image
+                source={require("../assets/heatmap.png")}
+                style={styles.heatmapOverlay}
+              />
+            )}
+          </View>
+
+          <View style={styles.modelInfo}>
+            <View style={styles.row}>
+              <Brain size={18} color="#00E0FF" />
+              <Text style={styles.modelTitle}>HAM10000 AI Model</Text>
+            </View>
+
+            <Text style={styles.modelText}>Architecture: EfficientNet-B0</Text>
+            <Text style={styles.modelText}>Classes: 7 lesion categories</Text>
+            <Text style={styles.modelText}>
+              Inference: {prediction ? `${prediction.inference_time_ms} ms` : "Unavailable"}
+            </Text>
+            <Text style={styles.modelText}>Use: Screening support, not diagnosis</Text>
+
+            <TouchableOpacity
+              style={styles.toggleBtn}
+              onPress={() => setShowGradCam(!showGradCam)}
+            >
+              <Eye size={16} color="#00E0FF" />
+              <Text style={styles.toggleText}>
+                {showGradCam ? "Show Original" : "Preview Heatmap"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </MotiView>
+
+        <MotiView
+          from={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 200 }}
+          style={styles.resultCard}
+        >
+          <ConfidenceCircle value={confidence} />
+
+          <View style={styles.resultText}>
+            <View style={[styles.riskPill, { borderColor: riskColor }]}>
+              <ShieldAlert size={14} color={riskColor} />
+              <Text style={[styles.risk, { color: riskColor }]}>{riskLevel} Risk</Text>
+            </View>
+            <Text style={styles.title}>
+              {prediction?.full_name || "Analysis unavailable"}
+            </Text>
+            <Text style={styles.subtitle}>
+              {prediction
+                ? `Primary classification with ${prediction.confidence_pct} confidence`
+                : "The AI response was not available for this result."}
+            </Text>
+          </View>
+        </MotiView>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Probability Scores</Text>
+          {topProbabilities.length > 0 ? (
+            topProbabilities.map((item) => (
+              <ProgressBar
+                key={item.class_key}
+                label={item.full_name}
+                value={Math.round(item.probability * 1000) / 10}
+              />
+            ))
+          ) : (
+            <Text style={styles.detailText}>No probability scores were returned.</Text>
           )}
         </View>
 
-        <View style={{ flex: 1 }}>
+        <View style={styles.section}>
           <View style={styles.row}>
-            <Brain size={18} color="#00E0FF" />
-            <Text style={styles.modelTitle}>Model Information</Text>
+            <Stethoscope size={18} color="#D8E5FF" />
+            <Text style={styles.sectionTitleInline}>Clinical Summary</Text>
           </View>
 
-          <Text style={styles.modelText}>
-            Architecture: EfficientNet-B4 (Ensemble)
+          <Text style={styles.detailHeading}>Predicted condition</Text>
+          <Text style={styles.detailText}>{description}</Text>
+
+          <Text style={styles.detailHeading}>Recommended next step</Text>
+          <Text style={styles.detailText}>
+            {prediction?.recommendation ||
+              prediction?.malignant_warning ||
+              "Please run a new analysis or consult a qualified clinician if you are concerned about this lesion."}
           </Text>
-          <Text style={styles.modelText}>
-            Dataset: HAM10000 + ISIC Archive
+
+          {symptoms ? (
+            <View style={styles.symptomsSummary}>
+              <Text style={styles.detailHeading}>Your notes</Text>
+              <Text style={styles.detailText}>{symptoms}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.advisory}>
+          <View style={styles.row}>
+            <Info size={18} color="#00E0FF" />
+            <Text style={styles.advisoryTitle}>Clinical Advisory</Text>
+          </View>
+          <Text style={styles.advisoryText}>
+            XDerma provides AI screening support only. It is not a medical diagnosis and should not replace an in-person dermatology evaluation.
           </Text>
-          <Text style={styles.modelText}>Accuracy: 87.3%</Text>
-          <Text style={styles.modelText}>ROC-AUC: 0.934</Text>
+        </View>
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => promptBeforeLeaving("SkinAnalysis")}
+          >
+            <RotateCcw size={18} color="#fff" />
+            <Text style={styles.btnText}>New Analysis</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.toggleBtn}
-            onPress={() => setShowGradCam(!showGradCam)}
+            style={styles.secondaryBtn}
+            onPress={() => promptBeforeLeaving("History")}
           >
-            <Eye size={16} color="#00E0FF" />
-            <Text style={styles.toggleText}>
-              {showGradCam ? "Show Original" : "Grad-CAM Heatmap"}
-            </Text>
+            <FileText size={18} color="#fff" />
+            <Text style={styles.btnText}>View History</Text>
           </TouchableOpacity>
         </View>
-      </MotiView>
-
-      {/* RESULT CARD */}
-      <MotiView
-        from={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 200 }}
-        style={styles.resultCard}
-      >
-        <ConfidenceCircle value={86} />
-
-        <View style={{ flex: 1 }}>
-          <Text style={styles.risk}>⚠ Medium Risk</Text>
-          <Text style={styles.title}>Actinic Keratosis</Text>
-          <Text style={styles.subtitle}>
-            Primary classification with 86.0% confidence
-          </Text>
-        </View>
-      </MotiView>
-
-      {/* DIFFERENTIAL */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Differential Diagnosis</Text>
-
-        <ProgressBar label="Actinic Keratosis" value={86.9} />
-        <ProgressBar label="Dermatofibroma" value={18.8} />
-        <ProgressBar label="Squamous Cell Carcinoma" value={4.9} />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>What This Means</Text>
-        <Text style={styles.detailHeading}>Clear description</Text>
-        <Text style={styles.detailText}>
-          The AI result suggests features that are most consistent with actinic
-          keratosis, a rough or scaly lesion caused by long-term sun exposure.
-          It is often considered pre-cancerous, which means it deserves prompt
-          clinical review even when it is not immediately dangerous.
-        </Text>
-
-        <Text style={styles.detailHeading}>Possible next steps</Text>
-        <Text style={styles.detailText}>
-          A dermatologist may confirm the finding with a skin exam and decide
-          whether monitoring, cryotherapy, topical treatment, or biopsy is the
-          best next step. Avoid picking at the area, protect it from sun
-          exposure, and arrange an appointment if the spot is growing, bleeding,
-          painful, or changing quickly.
-        </Text>
-
-        <Text style={styles.detailHeading}>How critical it could be</Text>
-        <Text style={styles.detailText}>
-          This result fits a medium-risk category. It usually does not mean an
-          emergency, but it should not be ignored because some lesions can
-          progress into skin cancer if left untreated.
-        </Text>
-
-        {symptoms ? (
-          <View style={styles.symptomsSummary}>
-            <Text style={styles.detailHeading}>Your notes</Text>
-            <Text style={styles.detailText}>{symptoms}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      {/* CLINICAL ADVISORY */}
-      <View style={styles.advisory}>
-        <View style={styles.row}>
-          <Info size={18} color="#00E0FF" />
-          <Text style={styles.advisoryTitle}>Clinical Advisory</Text>
-        </View>
-        <Text style={styles.advisoryText}>
-          Pre-cancerous lesion suspected. Dermatology follow-up recommended
-          within 30 days.
-        </Text>
-      </View>
-
-      {/* BUTTONS */}
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => promptBeforeLeaving("SkinAnalysis")}
-        >
-          <RotateCcw size={18} color="#fff" />
-          <Text style={styles.btnText}>New Analysis</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          onPress={() => promptBeforeLeaving("History")}
-        >
-          <FileText size={18} color="#fff" />
-          <Text style={styles.btnText}>View History</Text>
-        </TouchableOpacity>
-      </View>
       </ScrollView>
 
       <SaveDetectionModal
@@ -213,12 +249,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0B1220",
   },
-
   contentContainer: {
     padding: 16,
     paddingBottom: 32,
   },
-
   modelCard: {
     flexDirection: "row",
     backgroundColor: "#1B2433",
@@ -226,56 +260,52 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 20,
   },
-
   imageWrapper: {
     width: width * 0.25,
     height: width * 0.25,
     borderRadius: 12,
-    marginRight: 10,
+    marginRight: 12,
     overflow: "hidden",
     position: "relative",
+    backgroundColor: "#0F172A",
   },
-
   image: {
     width: "100%",
     height: "100%",
   },
-
   heatmapOverlay: {
     ...StyleSheet.absoluteFillObject,
     width: "100%",
     height: "100%",
-    opacity: 0.9,
+    opacity: 0.72,
   },
-
+  modelInfo: {
+    flex: 1,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-
   modelTitle: {
     color: "#fff",
     fontWeight: "600",
     marginLeft: 6,
   },
-
   modelText: {
-    color: "#aaa",
+    color: "#AEB8C7",
     fontSize: 12,
+    marginTop: 2,
   },
-
   toggleBtn: {
     marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
   },
-
   toggleText: {
     color: "#00E0FF",
     marginLeft: 5,
   },
-
   resultCard: {
     flexDirection: "row",
     backgroundColor: "#1B2433",
@@ -284,78 +314,90 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: "center",
   },
-
-  risk: {
-    color: "#F59E0B",
-    marginBottom: 4,
+  resultText: {
+    flex: 1,
   },
-
+  riskPill: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  risk: {
+    fontWeight: "700",
+    fontSize: 12,
+  },
   title: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
   },
-
   subtitle: {
-    color: "#aaa",
+    color: "#AEB8C7",
     fontSize: 12,
+    marginTop: 4,
   },
-
   section: {
     backgroundColor: "#1B2433",
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,
   },
-
   sectionTitle: {
     color: "#fff",
     marginBottom: 10,
     fontWeight: "600",
     fontSize: 16,
   },
-
+  sectionTitleInline: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
+    marginLeft: 6,
+  },
   detailHeading: {
     color: "#D8E5FF",
     fontSize: 14,
     fontWeight: "600",
-    marginTop: 8,
+    marginTop: 12,
     marginBottom: 6,
   },
-
   detailText: {
     color: "#AEB8C7",
     fontSize: 13,
     lineHeight: 20,
   },
-
   symptomsSummary: {
     marginTop: 8,
   },
-
   advisory: {
-    backgroundColor: "#1B2433",
+    backgroundColor: "#102235",
     padding: 16,
     borderRadius: 20,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0, 224, 255, 0.22)",
   },
-
   advisoryTitle: {
     color: "#00E0FF",
     marginLeft: 6,
+    fontWeight: "600",
   },
-
   advisoryText: {
-    color: "#aaa",
-    marginTop: 6,
+    color: "#AEB8C7",
+    marginTop: 8,
+    lineHeight: 20,
   },
-
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 8,
   },
-
   primaryBtn: {
     flex: 1,
     backgroundColor: "#00AEEF",
@@ -365,7 +407,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 8,
   },
-
   secondaryBtn: {
     flex: 1,
     backgroundColor: "#3B4252",
@@ -374,10 +415,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
   },
-
   btnText: {
     color: "#fff",
     marginLeft: 6,
+    fontWeight: "600",
   },
 });
 

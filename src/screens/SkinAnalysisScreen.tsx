@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,112 +9,182 @@ import {
   ScrollView,
   TextInput,
   Modal,
+  Alert,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Camera, Upload, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import Animated from 'react-native-reanimated';
-import { FadeInUp } from 'react-native-reanimated';import Loader from './Loader';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useXderma } from '../context/AppContext';
-import { analyzeImageQuality } from "../utils/imageQuality";
-import SmartLoader from "./SmartLoader";
-import { Image as RNImage } from "react-native";
+import { analyzeImageQuality } from '../utils/imageQuality';
+import {
+  SkinAnalysisApiError,
+  analyzeSkinImage,
+} from '../services/skinAnalysisApi';
+import { Image as RNImage } from 'react-native';
+import Loader from './Loader';
 
 type SelectedImage = {
   uri: string;
+  fileName?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
 };
 
 const { width } = Dimensions.get('window');
-const ANALYSIS_DURATION_MS = 8 * 1000;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp'];
 
 const SAMPLE_IMAGES: SelectedImage[] = [
-  { uri: RNImage.resolveAssetSource(require('../assets/sd1.webp')).uri },
-  { uri: RNImage.resolveAssetSource(require('../assets/sd2.webp')).uri },
-  { uri: RNImage.resolveAssetSource(require('../assets/sd3.jpg')).uri },
+  { uri: RNImage.resolveAssetSource(require('../assets/sd1.webp')).uri, fileName: 'sample-1.webp', mimeType: 'image/jpeg' },
+  { uri: RNImage.resolveAssetSource(require('../assets/sd2.webp')).uri, fileName: 'sample-2.webp', mimeType: 'image/jpeg' },
+  { uri: RNImage.resolveAssetSource(require('../assets/sd3.jpg')).uri, fileName: 'sample-3.jpg', mimeType: 'image/jpeg' },
 ];
+
+const getImageMimeType = (image: SelectedImage) => {
+  if (image.mimeType) {
+    return image.mimeType;
+  }
+
+  const source = image.fileName || image.uri;
+  const extension = source.split('?')[0]?.split('.').pop()?.toLowerCase();
+
+  if (extension === 'png') return 'image/png';
+  if (extension === 'bmp') return 'image/bmp';
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
+
+  return 'image/jpeg';
+};
+
+const validateSelectedImage = (image: SelectedImage) => {
+  const mimeType = getImageMimeType(image);
+
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+    return 'Please choose a JPG, PNG, or BMP image.';
+  }
+
+  if (image.fileSize && image.fileSize > MAX_IMAGE_SIZE) {
+    return 'Please choose an image smaller than 10 MB.';
+  }
+
+  return null;
+};
+
+const imageFromAsset = (asset: ImagePicker.ImagePickerAsset): SelectedImage => ({
+  uri: asset.uri,
+  fileName: asset.fileName || `xderma-image.${asset.uri.split('.').pop() || 'jpg'}`,
+  fileSize: asset.fileSize,
+  mimeType: asset.mimeType || getImageMimeType({ uri: asset.uri, fileName: asset.fileName }),
+});
 
 export default function SkinAnalysisScreen({ navigation }: any) {
   const { t } = useXderma();
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
   const [symptoms, setSymptoms] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showScanLoader, setShowScanLoader] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
+  const setValidatedImage = (image: SelectedImage) => {
+    const validationError = validateSelectedImage(image);
 
-  useEffect(() => {
-  if (showScanLoader) {
-    const timer = setTimeout(() => {
-      setShowScanLoader(false);
+    if (validationError) {
+      Alert.alert('Unsupported image', validationError);
+      return;
+    }
 
-      // 👉 HERE you open your result modal later
-      // setShowResult(true);
-
-    }, 4000); // scanner duration
-
-    return () => clearTimeout(timer);
-  }
-}, [showScanLoader]);
+    setSelectedImage(image);
+  };
 
   const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow photo library access to upload a skin image.');
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
+      quality: 0.92,
     });
 
     if (!result.canceled) {
-      setSelectedImage({ uri: result.assets[0].uri });
+      setValidatedImage(imageFromAsset(result.assets[0]));
     }
   };
 
   const openCamera = async () => {
-    const result = await ImagePicker.launchCameraAsync({ quality: 1 });
-    if (!result.canceled) {
-      setSelectedImage({ uri: result.assets[0].uri });
-    }
-  };
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
 
-const handleAnalyze = async () => {
-  if (!selectedImage || isAnalyzing) return;
-
-  try {
-    const result = await analyzeImageQuality(selectedImage.uri);
-
-    if (result.isBlurry || result.isTooDark || result.isLowContrast) {
-      let message = "";
-
-      if (result.isBlurry) message += "• Image is blurry\n";
-      if (result.isTooDark) message += "• Lighting is too low\n";
-      if (result.isLowContrast) message += "• Poor contrast\n";
-
-      alert(`⚠️ Image Quality Issue\n\n${message}\nPlease retake a clearer photo.`);
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow camera access to capture a skin image.');
       return;
     }
 
-    // Phase 1
-    setIsAnalyzing(true);
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.92,
+    });
 
-  } catch (error) {
-    console.log(error);
-  }
-};
+    if (!result.canceled) {
+      setValidatedImage(imageFromAsset(result.assets[0]));
+    }
+  };
 
-return (
+  const handleAnalyze = async () => {
+    if (!selectedImage || isAnalyzing) return;
+
+    const validationError = validateSelectedImage(selectedImage);
+
+    if (validationError) {
+      Alert.alert('Image issue', validationError);
+      return;
+    }
+
+    try {
+      const result = await analyzeImageQuality(selectedImage.uri);
+
+      if (result.isBlurry || result.isTooDark || result.isLowContrast) {
+        let message = '';
+
+        if (result.isBlurry) message += '- Image is blurry\n';
+        if (result.isTooDark) message += '- Lighting is too low\n';
+        if (result.isLowContrast) message += '- Poor contrast\n';
+
+        Alert.alert('Image quality issue', `${message}\nPlease retake a clearer photo.`);
+        return;
+      }
+
+      setIsAnalyzing(true);
+      const prediction = await analyzeSkinImage({
+        uri: selectedImage.uri,
+        fileName: selectedImage.fileName,
+        mimeType: getImageMimeType(selectedImage),
+      });
+
+      navigation.navigate('ResultsScreen', {
+        image: selectedImage.uri,
+        symptoms,
+        prediction,
+      });
+    } catch (error) {
+      const message =
+        error instanceof SkinAnalysisApiError
+          ? error.message
+          : 'Something went wrong while analyzing the image. Please try again.';
+
+      Alert.alert('Analysis failed', message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <Animated.View entering={FadeInUp.duration(700)} style={styles.card}>
           <Text style={styles.badge}>{t('skinAnalysis.badge')}</Text>
           <Text style={styles.title}>{t('skinAnalysis.title')}</Text>
-          <Text style={styles.subtitle}>
-            {t('skinAnalysis.subtitle')}
-          </Text>
+          <Text style={styles.subtitle}>{t('skinAnalysis.subtitle')}</Text>
 
           <View style={[styles.uploadBox, selectedImage ? styles.uploadBoxSelected : null]}>
             {selectedImage ? (
@@ -171,12 +241,12 @@ return (
             <View style={styles.samplesRow}>
               {SAMPLE_IMAGES.map((img, index) => (
                 <TouchableOpacity
-                  key={index}
+                  key={img.uri}
                   style={[
                     styles.sampleBtn,
                     selectedImage?.uri === img.uri && styles.sampleBtnSelected,
                   ]}
-                  onPress={() => setSelectedImage(img)}
+                  onPress={() => setValidatedImage(img)}
                 >
                   <Image source={{ uri: img.uri }} style={styles.sampleImg} />
                 </TouchableOpacity>
@@ -202,30 +272,15 @@ return (
             </Text>
           </TouchableOpacity>
 
-          <Text style={styles.footerText}>
-            {t('skinAnalysis.footer')}
-          </Text>
+          <Text style={styles.footerText}>{t('skinAnalysis.footer')}</Text>
         </Animated.View>
       </ScrollView>
 
-        <Modal transparent animationType="fade" visible={isAnalyzing}>
-            <BlurView intensity={45} tint="dark" style={styles.modalOverlay}>
-              <SmartLoader
-                onComplete={() => {
-                  setIsAnalyzing(false);
-                  setShowScanLoader(true); // move to next phase
-                }}
-              />
-            </BlurView>
-          </Modal>
-
-          <Modal transparent animationType="fade" visible={showScanLoader}>
-            <BlurView intensity={45} tint="dark" style={styles.modalOverlay}>
-              <Loader
-                route={{ params: { image: selectedImage?.uri } }}
-              />
-            </BlurView>
-        </Modal>
+      <Modal transparent animationType="fade" visible={isAnalyzing}>
+        <BlurView intensity={45} tint="dark" style={styles.modalOverlay}>
+          <Loader route={{ params: { image: selectedImage?.uri } }} />
+        </BlurView>
+      </Modal>
     </>
   );
 }
@@ -237,16 +292,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  logo: {
-    color: '#38BDF8',
-    fontSize: 22,
-    fontWeight: 'bold',
   },
   card: {
     backgroundColor: '#111827',
@@ -399,7 +444,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
   },
   symptomsContainer: {
-    marginTop: 20,
     marginBottom: 20,
     backgroundColor: '#1f29375e',
   },
@@ -414,8 +458,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     padding: 12,
     backgroundColor: '#3741518f',
-    height: 60,
+    minHeight: 84,
     borderRadius: 10,
+    textAlignVertical: 'top',
   },
   modalOverlay: {
     flex: 1,
@@ -427,7 +472,7 @@ const styles = StyleSheet.create({
   loaderModal: {
     width: '100%',
     maxWidth: 320,
-    backgroundColor: 'rgba(17, 24, 39, 0.88)',
+    backgroundColor: 'rgba(17, 24, 39, 0.92)',
     borderRadius: 24,
     paddingVertical: 32,
     paddingHorizontal: 24,
@@ -445,9 +490,9 @@ const styles = StyleSheet.create({
   },
   loaderSubtitle: {
     color: '#9CA3AF',
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
     fontFamily: 'Poppins_400Regular',
   },
 });

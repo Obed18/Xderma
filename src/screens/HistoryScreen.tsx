@@ -97,10 +97,10 @@ export default function HistoryScreen() {
             </Text>
             </View>
 
-            <View style={styles.headerIcons}>
+            {/* <View style={styles.headerIcons}>
                 <Ionicons name="search" size={22} color="#fff" />
                 <Ionicons name="options-outline" size={22} color="#fff" />
-            </View>
+            </View> */}
         </BlurView>
         <View style={styles.mainHistory}>
         {/* SUMMARY */}
@@ -164,8 +164,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#0F172A",
-        borderTopRightRadius: 24,
-        borderTopLeftRadius: 24,
         marginBottom: 30,
     },
 
@@ -176,8 +174,6 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         marginBottom: 16,
-        borderTopRightRadius: 24,
-        borderTopLeftRadius: 24,
     },
 
     title: {

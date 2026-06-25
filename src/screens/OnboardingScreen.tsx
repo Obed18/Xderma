@@ -5,7 +5,7 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
+  Dimensions, StatusBar,
 } from "react-native";
 import { useNavigation, type NavigationProp } from "@react-navigation/native";
 
@@ -61,6 +61,7 @@ export const OnboardingScreen = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       <View style={styles.content}>
         <Image
           source={slides[currentSlide].image}

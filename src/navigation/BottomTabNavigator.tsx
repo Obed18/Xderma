@@ -78,7 +78,7 @@ export default function BottomTabNavigator() {
             if (route.name === "Analyze") {
               return (
               <View style={styles.addButtonContainer}>
-                 <Ionicons name={iconName as any} size={36} color="#fff" />;
+                 <Ionicons name={iconName as any} size={36} color="#fff" />
               </View>
             );
             }

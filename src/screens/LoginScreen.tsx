@@ -10,7 +10,7 @@ import {
   Platform,
   ActivityIndicator, ImageBackground, Dimensions,
 } from "react-native";
-import { Mail, Lock, User } from "lucide-react-native";
+import { Mail, Lock } from "lucide-react-native";
 import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get("window");
@@ -20,7 +20,7 @@ const { width, height } = Dimensions.get("window");
 import { useXderma } from "../context/AppContext";
 
 const LoginScreen: React.FC = () => {
-  const { t } = useXderma();
+  const { authLoading, login, signup, t } = useXderma();
 
   const [isSignup, setIsSignup] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,6 +37,8 @@ const LoginScreen: React.FC = () => {
   useEffect(() => {
     setErrors({});
   }, [isSignup]);
+
+  const isSubmitting = loading || authLoading;
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -58,7 +60,34 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-  navigation.navigate('Main');
+    if (!validate()) return;
+
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const email = formData.email.trim();
+
+      if (isSignup) {
+        await signup(email, formData.password);
+      } else {
+        await login(email, formData.password);
+      }
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Main" }],
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.";
+
+      setErrors({ submit: message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgot = () => {
@@ -142,7 +171,7 @@ const LoginScreen: React.FC = () => {
               {errors.password && (
                 <Text style={styles.errorText}>{errors.password}</Text>
               )}
-            <TouchableOpacity style={styles.toggleButton} onPress={handleForgot} >
+            <TouchableOpacity style={styles.resetButton} onPress={handleForgot} >
                     <Text style={styles.resetLink}>
                       {t("auth.forgotPassword")}
                     </Text>
@@ -150,7 +179,11 @@ const LoginScreen: React.FC = () => {
             </View>
 
             {/* Loader / Button */}
-            {loading ? (
+            {errors.submit && (
+              <Text style={styles.submitError}>{errors.submit}</Text>
+            )}
+
+            {isSubmitting ? (
               <View style={styles.loaderContainer}>
                 <ActivityIndicator size="large" color="#009dff" />
                 <Text style={styles.loadingText}>
@@ -163,6 +196,7 @@ const LoginScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.submitButton}
                 onPress={handleSubmit}
+                disabled={isSubmitting}
               >
                 <Text style={styles.submitText}>
                   {isSignup ? t("auth.signUp") : t("auth.login")}
@@ -174,7 +208,7 @@ const LoginScreen: React.FC = () => {
             <TouchableOpacity
               onPress={() => setIsSignup(!isSignup)}
               style={styles.toggleButton}
-              disabled={loading}
+              disabled={isSubmitting}
             >
               <Text style={styles.toggleText}>
                 {isSignup ? (
@@ -296,6 +330,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
   },
 
+  submitError: {
+    color: "#f87171",
+    fontSize: 13,
+    marginBottom: 10,
+    textAlign: "center",
+    fontFamily: 'Poppins_400Regular',
+  },
+
   submitButton: {
     backgroundColor: "#0A9DED",
     borderRadius: 16,
@@ -326,6 +368,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_500Medium',
   },
 
+  resetButton:  {
+    marginTop: 12,
+    alignItems: "flex-end",
+  },
   toggleButton: {
     marginTop: 12,
     alignItems: "center",

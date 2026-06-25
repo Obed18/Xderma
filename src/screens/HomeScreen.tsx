@@ -5,18 +5,19 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  ScrollView, ImageBackground, StatusBar, 
+  ScrollView,
+  ImageBackground,
+  StatusBar,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import { MotiView, AnimatePresence } from "moti";
+import { MotiView } from "moti";
 import {
-  Menu,
-  X,
   Camera,
   Upload,
   Clock,
   Info,
 } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import DisclaimerModal from "./DisclaimerModal";
 import { useXderma } from "../context/AppContext";
@@ -28,10 +29,14 @@ const { width } = Dimensions.get("window");
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useXderma();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
-  const toggleMenu = () => setMenuOpen(!menuOpen);
+  const stats = [
+    { value: "87.3%", label: t("home.accuracy") },
+    { value: "0.884", label: "ROC-AUC" },
+    { value: "7", label: t("home.conditions") },
+    { value: "<5s", label: t("home.response") },
+  ];
 
   return (
     <View style={styles.container}>
@@ -44,16 +49,14 @@ const HomeScreen: React.FC = () => {
             </Text>
             </View>
 
-            <View style={styles.headerIcons}>
+            {/* <View style={styles.headerIcons}>
                 <Ionicons name="search" size={22} color="#fff" />
                 <Ionicons name="options-outline" size={22} color="#fff" />
-            </View>
+            </View> */}
         </BlurView>
       {/* 🔽 MAIN CONTENT (slides down) */}
       <MotiView
-        animate={{
-          translateY: menuOpen ? 200 : 0,
-        }}
+        animate={{ translateY: 0 }}
         transition={{ type: "timing", duration: 400 }}
         style={styles.main}
       >
@@ -98,35 +101,33 @@ const HomeScreen: React.FC = () => {
 
           {/* STATS */}
           <View style={styles.statsRow}>
-            {[
-              ["87.3%", t("home.accuracy")],
-              ["0.934", "ROC-AUC"],
-              ["7", t("home.conditions")],
-              ["<3s", t("home.response")],
-            ].map((item, i) => (
-              <View key={i} style={styles.statBox}>
-                <Text style={styles.statValue}>{item[0]}</Text>
-                <Text style={styles.statLabel}>{item[1]}</Text>
+            {stats.map((item) => (
+              <View key={item.label} style={styles.statBox}>
+                <Text style={styles.statValue}>{item.value}</Text>
+                <Text style={styles.statLabel}>{item.label}</Text>
               </View>
             ))}
           </View>
 
           {/* ACTION CARDS */}
           <ActionCard
-            icon={<Camera color="#9CA3AF" />}
+            Icon={Camera}
+            iconColor="#9CA3AF"
             title={t("home.captureImage")}
             desc={t("home.captureImageDesc")}
           />
 
           <ActionCard
-            icon={<Upload color="#00D4FF" />}
+            Icon={Upload}
+            iconColor="#00D4FF"
             title={t("home.uploadImage")}
             desc={t("home.uploadImageDesc")}
             highlight
           />
 
           <ActionCard
-            icon={<Clock color="#00D4FF" />}
+            Icon={Clock}
+            iconColor="#00D4FF"
             title={t("home.viewHistory")}
             desc={t("home.viewHistoryDesc")}
           />
@@ -145,12 +146,21 @@ const HomeScreen: React.FC = () => {
 export default HomeScreen;
 
 /* 🔹 ACTION CARD COMPONENT */
+type ActionCardProps = {
+  Icon: LucideIcon;
+  iconColor: string;
+  title: string;
+  desc: string;
+  highlight?: boolean;
+};
+
 const ActionCard = ({
-  icon,
+  Icon,
+  iconColor,
   title,
   desc,
   highlight,
-}: any) => (
+}: ActionCardProps) => (
   <MotiView
     from={{ opacity: 0, translateY: 15 }}
     animate={{ opacity: 1, translateY: 0 }}
@@ -160,7 +170,9 @@ const ActionCard = ({
       highlight && { borderColor: "#00d5ff3f", backgroundColor: "#0f2a3a" },
     ]}
   >
-    <View style={[styles.cardIcon, { width: 25, height: 25 }]}>{icon}</View>
+    <View style={styles.cardIcon}>
+      <Icon color={iconColor} size={25} />
+    </View>
     <View>
       <Text style={styles.cardTitle}>{title}</Text>
       <Text style={styles.cardDesc}>{desc}</Text>
@@ -173,19 +185,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0B1B2B",
-    borderTopRightRadius: 24,
-    borderTopLeftRadius: 24,
-    paddingBottom: 100,
+    paddingBottom: 75,
   },
     mainHeader: {
         padding: 16,
-        paddingTop: 60,
+        paddingTop: 50,
         borderRadius: 16,
         flexDirection: "row",
         justifyContent: "space-between",
         marginBottom: 16,
-        borderTopRightRadius: 24,
-        borderTopLeftRadius: 24,
     },
 
     Headertitle: {
@@ -224,7 +232,7 @@ const styles = StyleSheet.create({
   },
 
   heroCard: {
-    backgroundColor: "#0f243877",
+    backgroundColor: "#0f243883",
     borderRadius: 20,
     marginTop: 20,
   },
@@ -340,6 +348,8 @@ const styles = StyleSheet.create({
 
   cardIcon: {
     marginRight: 10,
+    width: 25,
+    height: 25,
   },
 
   cardTitle: {

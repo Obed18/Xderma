@@ -232,15 +232,12 @@ const SettingsItem: React.FC<any> = ({
   </TouchableOpacity>
 );
 
-/* =========================================================
-   🎨 STYLES
-========================================================= */
+
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
     backgroundColor: "#0B1B2B",
-    borderTopRightRadius: 24,
-    borderTopLeftRadius: 24,
+    paddingVertical: 40,
 },
   center: {
     flex: 1,
@@ -255,8 +252,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     width: "100%",
-    borderBottomColor: "#838484",
-    borderBottomWidth: 0.3,
   },
   title: {
     color: "#FFF",
@@ -317,8 +312,11 @@ const styles = StyleSheet.create({
   primaryText: { color: "#fff", fontWeight: "600" },
 
   card: {
-    backgroundColor: "#0B1B2B",
+    backgroundColor: "#1b2f43",
     padding: 12,
+    borderRadius: 20,
+    paddingVertical: 10,
+    margin: 10,
   },
 
   menuItem: {
