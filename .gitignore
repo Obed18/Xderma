@@ -2,6 +2,8 @@
 
 # dependencies
 node_modules/
+docs/
+README.md
 
 # Expo
 .expo/
@@ -25,16 +27,26 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
+*.err
 
 # macOS
 .DS_Store
 *.pem
 
 # local env files
+.env
 .env*.local
+.env.production
+**/.env.production
+HAM10000-Skin-Lesion-Classifier-main/.env
 
 # typescript
 *.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
 
 # generated native folders
 /ios

@@ -16,6 +16,7 @@ export type SkinPrediction = {
   malignant_warning: string;
   recommendation?: string;
   all_probabilities: ClassProbability[];
+  gradcam_data_url?: string | null;
   inference_time_ms: number;
 };
 
@@ -39,7 +40,8 @@ const DEFAULT_API_URL = "http://127.0.0.1:8000";
 const API_URL = (
   process.env.EXPO_PUBLIC_XDERMA_AI_API_URL || DEFAULT_API_URL
 ).replace(/\/$/, "");
-const DEFAULT_TIMEOUT_MS = 45000;
+const API_KEY = process.env.EXPO_PUBLIC_XDERMA_AI_API_KEY;
+const DEFAULT_TIMEOUT_MS = 90000;
 
 const getFileExtension = (uri: string) => {
   const cleanUri = uri.split("?")[0] || uri;
@@ -89,7 +91,7 @@ const requestWithTimeout = async (
   } catch (error: any) {
     if (error?.name === "AbortError") {
       throw new SkinAnalysisApiError(
-        "The AI analysis timed out. Please check the backend connection and try again."
+        "The AI analysis timed out. Make sure the backend is running, the app is using your current computer IP address, and the phone is on the same network."
       );
     }
 
@@ -121,6 +123,7 @@ export const analyzeSkinImage = async (
       body: formData,
       headers: {
         Accept: "application/json",
+        ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
       },
     },
     timeoutMs
@@ -143,4 +146,5 @@ export const analyzeSkinImage = async (
 export const skinAnalysisApiConfig = {
   apiUrl: API_URL,
   timeoutMs: DEFAULT_TIMEOUT_MS,
+  hasApiKey: Boolean(API_KEY),
 };

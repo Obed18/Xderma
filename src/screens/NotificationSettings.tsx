@@ -103,9 +103,12 @@ const NotificationSettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.header}>Notification Settings</Text>
-
+            <BlurView intensity={50} style={styles.header}>
+                <View>
+                    <Text style={styles.title}>Notification Settings</Text>
+                </View>
+            </BlurView>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.mainHistory}>
         {/* General */}
         <Section icon={Bell} title="General">
           <SettingItem
@@ -197,17 +200,34 @@ export default NotificationSettingsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1B2B",
-    paddingHorizontal: 16,
-    paddingTop: 50,
+    backgroundColor: "#b1dcf7",
   },
 
-  header: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#ffffff",
-    marginBottom: 20,
-  },
+    mainHistory: {
+        flex: 1,
+        paddingHorizontal: 16,
+        borderTopLeftRadius: 27,
+        borderTopRightRadius: 27,
+        backgroundColor: "#0A0D0C",
+        paddingTop: 16,
+    paddingBottom: 70,
+    },
+
+    header: {
+        padding: 16,
+        paddingTop: 60,
+        borderRadius: 16,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 16,
+        backgroundColor: "#b1dcf7",
+    },
+
+    title: {
+        color: "#000",
+        fontSize: 22,
+        fontWeight: "bold",
+    },
 
   section: {
     marginBottom: 20,
@@ -218,7 +238,7 @@ const styles = StyleSheet.create({
   sectionBlur: {
     padding: 16,
     borderRadius: 20,
-    backgroundColor: "#0B1B2B",
+    backgroundColor: "#0a0d0c28",
   },
 
   sectionHeader: {
@@ -239,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 0.3,
-    borderColor: "#ddd",
+    borderColor: "#dddddd31",
   },
 
   itemTitle: {

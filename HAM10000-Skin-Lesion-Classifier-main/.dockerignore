@@ -1,0 +1,13 @@
+.agents
+.git
+.venv
+Dataset
+notebooks
+outputs
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.env.*

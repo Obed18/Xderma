@@ -4,12 +4,15 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 import SplashScreen from '../screens/SplashScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
+import AiChatScreen from '../screens/AiChatScreen';
+import SpecialistChatScreen from '../screens/SpecialistChatScreen';
 import HomeScreen from '../screens/HomeScreen';
+import XDermaChatLanding from '../screens/XDermaChatLanding';
 import LoginScreen from '../screens/LoginScreen';
 import Main from './BottomTabNavigator';
 import SkinAnalysisScreen from '../screens/SkinAnalysisScreen';
 import AnalysisCard from '../screens/AnalysisCard';
-import PasswordResetScreen from '../screens/PasswordResetScreen';
+import PasswordRecovery from '../screens/PasswordRecovery';
 import SettingsScreen from '../screens/SettingsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import LanguageScreen from '../screens/LanguageScreen';
@@ -29,8 +32,12 @@ const AppNavigator = () => {
       <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />      
-      <Stack.Screen name="Login" component={LoginScreen} />      
-      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Home" component={AiChatScreen} />
+      <Stack.Screen name="AiChat" component={AiChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="SpecialistChat" component={SpecialistChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="XDermaChatLanding" component={XDermaChatLanding} options={{ headerShown: false }} />
       <Stack.Screen name="Main" component={Main} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="History" component={HistoryScreen} options={{ headerShown: false }} />
@@ -82,9 +89,10 @@ const AppNavigator = () => {
             headerTintColor: '#0F172A',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },
             headerBackTitle: 'Back', // iOS
-            headerTitleAlign: 'center',}}
+            headerTitleAlign: 'center',
+          }}
         />
-      <Stack.Screen name="Reset" component={PasswordResetScreen}
+      <Stack.Screen name="Reset" component={PasswordRecovery}
         options={{
             headerShown: false, 
             title: t('nav.passwordReset'),

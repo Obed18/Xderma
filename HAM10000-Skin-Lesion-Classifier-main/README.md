@@ -193,6 +193,7 @@ torchvision>=0.24,<0.27
 fastapi>=0.111,<1.0
 uvicorn[standard]>=0.30,<1.0
 python-multipart>=0.0.9
+python-dotenv>=1.0,<2
 pillow>=10.3,<13
 numpy>=1.26.4,<3
 pandas
@@ -240,6 +241,9 @@ notebooks/02_Baseline_CNN_Evaluation.ipynb
 Once Notebook 2 is complete and `models/efficientnet_inference.pth` exists:
 
 ```bash
+# Copy the local backend env template and add your OpenRouter key
+cp .env.production.example .env
+
 # Start the server
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -252,6 +256,48 @@ The API will be live at:
 | `http://localhost:8000/docs` | 📖 Interactive Swagger UI |
 | `http://localhost:8000/redoc` | 📄 ReDoc documentation |
 
+### Production Docker Deployment
+
+The API can run in Docker with API-key authentication, rate limiting, and restricted CORS.
+
+```bash
+cd HAM10000-Skin-Lesion-Classifier-main
+cp .env.production.example .env.production
+# Edit .env.production before deploying.
+docker compose up --build -d
+```
+
+Required production settings:
+
+| Variable | Purpose |
+|---|---|
+| `XDERMA_API_KEY` | Required by protected endpoints through the `X-API-Key` header |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed browser origins |
+| `RATE_LIMIT_REQUESTS` | Max requests per client IP per window |
+| `RATE_LIMIT_WINDOW_SECONDS` | Rate limit window size |
+| `OPENROUTER_API_KEY` | Server-side OpenRouter key for `/chat` |
+| `OPENROUTER_MODEL` | OpenRouter model slug used by `/chat` |
+| `OPENROUTER_REFERER` | Optional app URL sent to OpenRouter |
+| `OPENROUTER_TITLE` | Optional app name sent to OpenRouter |
+
+Example secured request:
+
+```bash
+curl -X POST "http://localhost:8000/predict" \
+  -H "accept: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -F "file=@skin_image.jpg"
+```
+
+For the Expo app, set:
+
+```bash
+EXPO_PUBLIC_XDERMA_AI_API_URL=https://your-api-host.example.com
+EXPO_PUBLIC_XDERMA_AI_API_KEY=your-api-key
+```
+
+> Expo public environment variables are bundled into the client. For stronger production security, pair this API key gate with real user/session authentication at your edge or backend.
+
 ---
 
 ## 🔗 API Endpoints
@@ -263,6 +309,7 @@ The API will be live at:
 | `GET` | `/classes` | All 7 classes with descriptions |
 | `POST` | `/predict` | Single image prediction |
 | `POST` | `/predict/batch` | Batch prediction (up to 10 images) |
+| `POST` | `/chat` | Dermatology education chat via OpenRouter |
 
 ---
 
@@ -272,6 +319,7 @@ The API will be live at:
 ```bash
 curl -X POST "http://localhost:8000/predict" \
   -H "accept: application/json" \
+  -H "X-API-Key: your-api-key" \
   -F "file=@skin_image.jpg"
 ```
 
@@ -282,6 +330,7 @@ import requests
 with open("skin_image.jpg", "rb") as f:
     response = requests.post(
         "http://localhost:8000/predict",
+        headers={"X-API-Key": "your-api-key"},
         files={"file": ("skin_image.jpg", f, "image/jpeg")}
     )
 
@@ -302,7 +351,11 @@ files = [
     ("files", ("img3.jpg", open("img3.jpg", "rb"), "image/jpeg")),
 ]
 
-response = requests.post("http://localhost:8000/predict/batch", files=files)
+response = requests.post(
+    "http://localhost:8000/predict/batch",
+    headers={"X-API-Key": "your-api-key"},
+    files=files,
+)
 data = response.json()
 
 print(f"Total images : {data['total_images']}")
@@ -347,6 +400,9 @@ A test script is included that hits every endpoint and validates responses:
 ```bash
 # Run with synthetic test images (no real image needed)
 python test_api.py
+
+# Run against a secured deployment
+python test_api.py --api-key your-api-key
 
 # Run with a real dermoscopy image
 python test_api.py --image path/to/your/image.jpg

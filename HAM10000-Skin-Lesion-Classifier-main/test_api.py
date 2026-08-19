@@ -13,6 +13,7 @@ PASS  = " PASS"
 FAIL  = " FAIL"
 SKIP  = " SKIP"
 results = []
+request_headers = {}
 
 def log(status, name, detail=""):
     icon = {"PASS": "Pass", "FAIL": "Fail", "SKIP": "skipped "}.get(status, "•")
@@ -37,7 +38,7 @@ def separator(title=""):
 def test_root(base_url):
     separator("GET /")
     try:
-        r = requests.get(f"{base_url}/", timeout=10)
+        r = requests.get(f"{base_url}/", headers=request_headers, timeout=10)
         assert r.status_code == 200
         data = r.json()
         assert "message" in data
@@ -69,7 +70,7 @@ def test_health(base_url):
 def test_classes(base_url):
     separator("GET /classes")
     try:
-        r = requests.get(f"{base_url}/classes", timeout=10)
+        r = requests.get(f"{base_url}/classes", headers=request_headers, timeout=10)
         assert r.status_code == 200
         data = r.json()
         assert data["num_classes"] == 7
@@ -84,7 +85,7 @@ def test_predict_no_file(base_url):
     separator("POST /predict — Validation Tests")
     # No file
     try:
-        r = requests.post(f"{base_url}/predict", timeout=10)
+        r = requests.post(f"{base_url}/predict", headers=request_headers, timeout=10)
         assert r.status_code == 422
         log("PASS", "No file → 422 Unprocessable Entity")
     except Exception as e:
@@ -94,6 +95,7 @@ def test_predict_no_file(base_url):
     try:
         r = requests.post(
             f"{base_url}/predict",
+            headers=request_headers,
             files={"file": ("test.txt", b"hello world", "text/plain")}
         )
         assert r.status_code == 400
@@ -129,6 +131,7 @@ def test_predict_with_image(base_url, image_path: str):
         start = time.time()
         r = requests.post(
             f"{base_url}/predict",
+            headers=request_headers,
             files={"file": (filename, img_bytes, "image/jpeg")},
             timeout=30
         )
@@ -177,6 +180,7 @@ def test_batch_predict(base_url, image_path: str):
 
         r = requests.post(
             f"{base_url}/predict/batch",
+            headers=request_headers,
             files=[("files", img) for img in images],
             timeout=60
         )
@@ -214,7 +218,12 @@ def test_batch_too_many(base_url):
 
         # Send 11 images (limit is 10)
         files = [("files", (f"img{i}.jpg", make_bytes(), "image/jpeg")) for i in range(11)]
-        r = requests.post(f"{base_url}/predict/batch", files=files, timeout=30)
+        r = requests.post(
+            f"{base_url}/predict/batch",
+            headers=request_headers,
+            files=files,
+            timeout=30
+        )
         assert r.status_code == 400
         log("PASS", "11 images → 400 Bad Request (limit enforced)")
     except ImportError:
@@ -228,9 +237,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test the HAM10000 FastAPI")
     parser.add_argument("--url",   default=DEFAULT_URL, help="API base URL")
     parser.add_argument("--image", default=None,        help="Path to a real image to test")
+    parser.add_argument("--api-key", default=None,      help="API key for secured deployments")
     args = parser.parse_args()
 
     base_url = args.url.rstrip("/")
+    if args.api_key:
+        request_headers["X-API-Key"] = args.api_key
 
     print("\n" + "═" * 55)
     print(f"  HAM10000 API TEST SUITE")
@@ -239,7 +251,7 @@ if __name__ == "__main__":
 
     # Check server is reachable
     try:
-        requests.get(f"{base_url}/", timeout=5)
+        requests.get(f"{base_url}/health", timeout=5)
     except Exception:
         print(f"\n Server not reachable at {base_url}")
         print("   Start with:  uvicorn api.main:app --reload")

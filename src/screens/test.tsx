@@ -5,6 +5,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -20,12 +21,6 @@ import {
   History,
   UserRound,
 } from 'lucide-react-native';
-
-import HomeScreen from '../screens/HomeScreen';
-import XDermaChatLanding from '../screens/XDermaChatLanding';
-import NotificationSettings from '../screens/NotificationSettings';
-import HistoryScreen from '../screens/HistoryScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 
 type NavItem = {
   id: string;
@@ -116,12 +111,13 @@ type FloatingNavProps = {
   onAddPress?: () => void;
 };
 
-export default function BottomTabNavigator({
+export default function FloatingNav({
   initialActive = 'home',
   onNavigate,
   onAddPress,
 }: FloatingNavProps) {
   const [active, setActive] = useState(initialActive);
+  const navigation = useNavigation<any>();
 
   const { width } = useWindowDimensions();
 
@@ -132,83 +128,95 @@ export default function BottomTabNavigator({
   const isSmall = width < 380;
   const isVerySmall = width < 330;
 
-  const addSize = isVerySmall
-    ? 52
+  const dockWidth = isVerySmall
+    ? Math.min(width - 32, 300)
     : isSmall
-      ? 56
-      : 60;
+      ? Math.min(width - 36, 340)
+      : Math.min(width - 48, 390);
 
-  const dockWidth = Math.min(
-    Math.max(width - addSize - 52, 200),
-    300,
-  );
+  const addSize = isVerySmall
+    ? 58
+    : isSmall
+      ? 62
+      : 68;
 
   const handleNavigate = (id: string) => {
     setActive(id);
-    onNavigate?.(id);
+
+    if (onNavigate) {
+      onNavigate(id);
+      return;
+    }
+
+    const routeMap: Record<string, string> = {
+      home: 'HomeScreen',
+      chat: 'XDermaChatLanding',
+      notifications: 'NotificationSettings',
+      history: 'History',
+      profile: 'Settings',
+    };
+
+    const targetRoute = routeMap[id];
+    if (targetRoute) {
+      navigation.navigate(targetRoute);
+    }
   };
 
   const handleAddPress = () => {
     setActive('profile');
     onNavigate?.('profile');
     onAddPress?.();
-  };
 
-  const renderActiveScreen = () => {
-    switch (active) {
-      case 'chat':
-        return <XDermaChatLanding />;
-      case 'notifications':
-        return <NotificationSettings />;
-      case 'history':
-        return <HistoryScreen />;
-      case 'profile':
-        return <SettingsScreen />;
-      case 'home':
-      default:
-        return <HomeScreen />;
+    if (!onNavigate) {
+      navigation.navigate('Settings');
     }
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.content}>{renderActiveScreen()}</View>
-
-      <View pointerEvents="box-none" style={styles.wrapper}>
-        <View style={styles.container}>
+    <View
+      pointerEvents="box-none"
+      style={styles.wrapper}
+    >
+      <View style={styles.container}>
+        {/* Main navigation capsule */}
+        <View
+          style={[
+            styles.dock,
+            {
+              width: dockWidth,
+            },
+          ]}
+        >
+          {/* Subtle glass highlight */}
           <View
-            style={[
-              styles.dock,
-              {
-                width: dockWidth,
-              },
-            ]}
-          >
-            <View
-              pointerEvents="none"
-              style={styles.dockHighlight}
-            />
-
-            {NAV_ITEMS.map(({ id, icon: Icon }) => (
-              <NavButton
-                key={id}
-                active={active === id}
-                onPress={() => handleNavigate(id)}
-              >
-                <Icon
-                  size={isVerySmall ? 22 : 25}
-                  color={active === id ? '#F5F5F5' : '#D7D7D9'}
-                  strokeWidth={1.9}
-                />
-              </NavButton>
-            ))}
-          </View>
-
-          <AddButton
-            size={addSize}
-            onPress={handleAddPress}
+            pointerEvents="none"
+            style={styles.dockHighlight}
           />
+
+          {NAV_ITEMS.map(({ id, icon: Icon }) => (
+            <NavButton
+              key={id}
+              active={active === id}
+              onPress={() => handleNavigate(id)}
+            >
+              <Icon
+                size={isVerySmall ? 22 : 25}
+                color={
+                  active === id
+                    ? '#F5F5F5'
+                    : '#D7D7D9'
+                }
+                strokeWidth={1.9}
+              />
+            </NavButton>
+          ))}
         </View>
+
+        {/* Floating + button */}
+        <AddButton
+          size={addSize}
+          onPress={handleAddPress}
+        />
       </View>
     </View>
   );
@@ -269,44 +277,40 @@ function AddButton({
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F7F9FC',
-  },
-
-  content: {
-    flex: 1,
-  },
-
   wrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 18,
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
+
+    // Gives the dock some breathing room when placed
+    // at the bottom of a screen.
+    paddingHorizontal: 16,
   },
 
   container: {
-    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+
+    gap: 14,
   },
 
   dock: {
     height: 66,
+
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+
     paddingHorizontal: 6,
+
     borderRadius: 34,
+
     backgroundColor: '#242426',
+
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.055)',
+
     // iOS shadow
     shadowColor: '#000',
     shadowOffset: {
@@ -315,8 +319,10 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.42,
     shadowRadius: 18,
+
     // Android
     elevation: 10,
+
     overflow: 'hidden',
   },
 

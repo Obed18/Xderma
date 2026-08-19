@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  label: { color: "#fff" },
+  label: { color: "#fff", width: "70%" },
   value: { color: "#aaa" },
   bar: {
     height: 6,

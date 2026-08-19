@@ -21,7 +21,7 @@ import {
   Shield,
   Settings,
 } from "lucide-react-native";
-import HomeScreen from "./HomeScreen";
+import AiChatScreen from "./AiChatScreen";
 import SettingsScreen from "./SettingsScreen";
 import DisclaimerModal from "./DisclaimerModal";
 import HistoryScreen from "./HistoryScreen";
@@ -92,7 +92,7 @@ const MainScreen = () => {
 
   const renderMainContent = () => {
     if (activeMenuItem === "home") {
-      return <HomeScreen />;
+      return <AiChatScreen />;
     }
 
     if (activeMenuItem === "settings") {

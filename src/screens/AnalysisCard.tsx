@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   ScrollView,
+  Alert,
 } from "react-native";
 import { MotiView } from "moti";
 import {
@@ -23,6 +24,7 @@ import ProgressBar from "./ProgressBar";
 import SaveDetectionModal from "./SaveDetectionModal";
 import { useNavigation } from "@react-navigation/native";
 import { SkinPrediction } from "../services/skinAnalysisApi";
+import { saveAnalysis } from "../services/historyService";
 
 const { width } = Dimensions.get("window");
 
@@ -34,6 +36,143 @@ const CLASS_DESCRIPTIONS: Record<string, string> = {
   mel: "A melanoma-like pattern. Melanoma can be serious and needs prompt clinical review.",
   nv: "A melanocytic nevus pattern, commonly associated with ordinary moles.",
   vasc: "A vascular lesion pattern, including angiomas and related blood-vessel lesions.",
+};
+
+const CLASS_POSSIBLE_CONDITIONS: Record<string, string> = {
+  akiec:
+    "actinic keratosis or another sun-damage related lesion",
+  bcc:
+    "basal cell carcinoma or another slow-growing non-melanoma skin cancer",
+  bkl:
+    "benign keratosis, seborrheic keratosis, or another non-cancerous keratin growth",
+  df:
+    "dermatofibroma or another firm benign skin nodule",
+  mel:
+    "melanoma or another atypical pigmented lesion",
+  nv:
+    "melanocytic nevus, commonly called a mole",
+  vasc:
+    "vascular lesion such as angioma, angiokeratoma, or another blood-vessel related lesion",
+};
+
+const symptomIncludes = (symptoms: string, terms: string[]) =>
+  terms.some((term) => symptoms.includes(term));
+
+const buildPossibleConditionText = (
+  prediction?: SkinPrediction,
+  symptomNotes?: string
+) => {
+  if (!prediction) {
+    return "A possible condition cannot be estimated because no AI classification was returned.";
+  }
+
+  const notes = symptomNotes?.toLowerCase() || "";
+  const modelCondition =
+    CLASS_POSSIBLE_CONDITIONS[prediction.predicted_class] || prediction.full_name;
+  const symptomClues: string[] = [];
+  const alternatives: string[] = [];
+
+  if (notes) {
+    if (
+      symptomIncludes(notes, [
+        "itch",
+        "itchy",
+        "itching",
+        "scratch",
+        "scaly",
+        "scale",
+        "flaky",
+        "dry",
+        "peel",
+      ])
+    ) {
+      symptomClues.push("itching or scaling");
+      alternatives.push("eczema, dermatitis, psoriasis, or a superficial fungal rash");
+    }
+
+    if (
+      symptomIncludes(notes, [
+        "ring",
+        "circle",
+        "circular",
+        "round",
+        "worm",
+        "fungal",
+        "spreading edge",
+      ])
+    ) {
+      symptomClues.push("a ring-shaped or spreading border");
+      alternatives.push("tinea corporis, commonly called ringworm");
+    }
+
+    if (
+      symptomIncludes(notes, [
+        "bleed",
+        "bleeding",
+        "blood",
+        "crust",
+        "crusting",
+        "ulcer",
+        "sore",
+        "non healing",
+        "non-healing",
+      ])
+    ) {
+      symptomClues.push("bleeding, crusting, ulceration, or poor healing");
+      alternatives.push("an irritated lesion or a skin cancer that needs prompt clinical review");
+    }
+
+    if (
+      symptomIncludes(notes, [
+        "pain",
+        "painful",
+        "tender",
+        "burn",
+        "burning",
+        "swollen",
+        "swelling",
+        "pus",
+        "warm",
+      ])
+    ) {
+      symptomClues.push("pain, tenderness, swelling, warmth, or drainage");
+      alternatives.push("inflammation or infection around the lesion");
+    }
+
+    if (
+      symptomIncludes(notes, [
+        "growing",
+        "growth",
+        "larger",
+        "changing",
+        "change",
+        "dark",
+        "black",
+        "irregular",
+        "asymmetric",
+      ])
+    ) {
+      symptomClues.push("growth, color change, or irregular shape");
+      alternatives.push("an atypical or malignant lesion requiring dermatologist assessment");
+    }
+  }
+
+  const uniqueAlternatives = Array.from(new Set(alternatives));
+  const uniqueClues = Array.from(new Set(symptomClues));
+
+  if (!notes) {
+    return `Based on the AI image classification, this could be ${modelCondition}. Add symptom notes such as itching, pain, bleeding, growth, or color change for a more contextual explanation.`;
+  }
+
+  if (uniqueAlternatives.length === 0) {
+    return `Based on the AI image classification and your notes, this could be ${modelCondition}. The symptoms provided do not strongly point to a separate inflammatory, infectious, or fungal pattern, so a clinician should correlate this with an in-person skin exam.`;
+  }
+
+  return `Based on the AI image classification, this could be ${modelCondition}. Because you also described ${uniqueClues.join(
+    ", "
+  )}, dermatology knowledge suggests considering ${uniqueAlternatives.join(
+    "; "
+  )}. This is a screening interpretation, not a diagnosis.`;
 };
 
 const getConfidencePercent = (prediction?: SkinPrediction) => {
@@ -54,6 +193,16 @@ const getRiskColor = (riskLevel: string) => {
   return "#94A3B8";
 };
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+
+  if (error && typeof error === "object" && "message" in error) {
+    return String((error as { message?: unknown }).message);
+  }
+
+  return "The analysis could not be saved. Please try again.";
+};
+
 const AnalysisCard = ({ route }: any) => {
   const [showGradCam, setShowGradCam] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
@@ -64,6 +213,7 @@ const AnalysisCard = ({ route }: any) => {
   const selectedImage = route?.params?.image as string | undefined;
   const symptoms = route?.params?.symptoms?.trim();
   const prediction = route?.params?.prediction as SkinPrediction | undefined;
+  const gradcamImage = prediction?.gradcam_data_url;
   const confidence = getConfidencePercent(prediction);
   const riskLevel = getRiskLevel(prediction);
   const riskColor = getRiskColor(riskLevel);
@@ -72,18 +222,56 @@ const AnalysisCard = ({ route }: any) => {
     ? CLASS_DESCRIPTIONS[prediction.predicted_class] ||
       "The AI model matched the image to this lesion class based on visual patterns learned from HAM10000."
     : "No prediction data was received. Please run a new analysis when the AI backend is available.";
+  const possibleCondition = buildPossibleConditionText(prediction, symptoms);
 
   const promptBeforeLeaving = (destination: "SkinAnalysis" | "History") => {
     setPendingRoute(destination);
     setSaveModalVisible(true);
   };
 
-  const continueToPendingRoute = () => {
-    setSaveModalVisible(false);
+  const navigateToPendingRoute = () => {
+    const destination = pendingRoute;
 
-    if (pendingRoute) {
-      navigation.navigate(pendingRoute);
-      setPendingRoute(null);
+    setSaveModalVisible(false);
+    setPendingRoute(null);
+
+    if (destination) {
+      navigation.navigate(destination);
+    }
+  };
+
+  const saveToHistory = async () => {
+    if (!prediction) {
+      Alert.alert(
+        "Nothing to save",
+        "Run a successful analysis before saving a result to history."
+      );
+      return;
+    }
+
+    try {
+      await saveAnalysis({
+        image_url: selectedImage ?? null,
+        predicted_class: prediction.predicted_class,
+        full_name: prediction.full_name,
+        confidence: prediction.confidence,
+        confidence_pct: prediction.confidence_pct,
+        risk_level: riskLevel,
+        is_malignant: prediction.is_malignant,
+        inference_time_ms: prediction.inference_time_ms,
+        description,
+        possible_condition: possibleCondition,
+        recommendation:
+          prediction.recommendation ?? prediction.malignant_warning,
+        symptoms: symptoms || null,
+        probabilities: prediction.all_probabilities,
+        gradcam_url: prediction.gradcam_data_url ?? null,
+      });
+
+      navigateToPendingRoute();
+    } catch (err) {
+      console.log("Failed to save analysis history:", err);
+      Alert.alert("Save failed", getErrorMessage(err));
     }
   };
 
@@ -98,47 +286,57 @@ const AnalysisCard = ({ route }: any) => {
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
       >
+          <View style={styles.imageWrapper}>
+            <Image
+              source={selectedImage ? { uri: selectedImage } : require("../assets/sd1.webp")}
+              style={styles.image}
+            />
+            {showGradCam && gradcamImage ? (
+              <Image
+                source={{ uri: gradcamImage }}
+                style={styles.heatmapOverlay}
+              />
+            ) : null}
+          </View>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.mainHistory}>
         <MotiView
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: "timing", duration: 500 }}
           style={styles.modelCard}
         >
-          <View style={styles.imageWrapper}>
-            <Image
-              source={selectedImage ? { uri: selectedImage } : require("../assets/sd1.webp")}
-              style={styles.image}
-            />
-            {showGradCam && (
-              <Image
-                source={require("../assets/heatmap.png")}
-                style={styles.heatmapOverlay}
-              />
-            )}
-          </View>
 
           <View style={styles.modelInfo}>
+            <View style={styles.row2}>
             <View style={styles.row}>
               <Brain size={18} color="#00E0FF" />
-              <Text style={styles.modelTitle}>HAM10000 AI Model</Text>
+              <Text style={styles.modelTitle}>XDerma AI</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.toggleBtn, !gradcamImage && styles.toggleBtnDisabled]}
+              disabled={!gradcamImage}
+              onPress={() => setShowGradCam(!showGradCam)}
+            >
+              <Eye size={18} color={gradcamImage ? "#00E0FF" : "#64748B"} />
+              <Text style={[styles.toggleText, !gradcamImage && styles.toggleTextDisabled]}>
+                {gradcamImage
+                  ? showGradCam
+                    ? "Show Original"
+                    : "Show Heatmap"
+                  : "Heatmap Unavailable"}
+              </Text>
+            </TouchableOpacity>
             </View>
 
-            <Text style={styles.modelText}>Architecture: EfficientNet-B0</Text>
-            <Text style={styles.modelText}>Classes: 7 lesion categories</Text>
+            {/* <Text style={styles.modelText}>Architecture: EfficientNet-B0</Text>
+            <Text style={styles.modelText}>Classes: 7 lesion categories</Text> */}
+            <View style={styles.row2}>
             <Text style={styles.modelText}>
               Inference: {prediction ? `${prediction.inference_time_ms} ms` : "Unavailable"}
             </Text>
             <Text style={styles.modelText}>Use: Screening support, not diagnosis</Text>
+            </View>
 
-            <TouchableOpacity
-              style={styles.toggleBtn}
-              onPress={() => setShowGradCam(!showGradCam)}
-            >
-              <Eye size={16} color="#00E0FF" />
-              <Text style={styles.toggleText}>
-                {showGradCam ? "Show Original" : "Preview Heatmap"}
-              </Text>
-            </TouchableOpacity>
           </View>
         </MotiView>
 
@@ -190,6 +388,9 @@ const AnalysisCard = ({ route }: any) => {
           <Text style={styles.detailHeading}>Predicted condition</Text>
           <Text style={styles.detailText}>{description}</Text>
 
+          <Text style={styles.detailHeading}>Possible condition</Text>
+          <Text style={styles.detailText}>{possibleCondition}</Text>
+
           <Text style={styles.detailHeading}>Recommended next step</Text>
           <Text style={styles.detailText}>
             {prediction?.recommendation ||
@@ -229,16 +430,17 @@ const AnalysisCard = ({ route }: any) => {
             onPress={() => promptBeforeLeaving("History")}
           >
             <FileText size={18} color="#fff" />
-            <Text style={styles.btnText}>View History</Text>
+            <Text style={styles.btnText}>Save</Text>
           </TouchableOpacity>
         </View>
+        </ScrollView>
       </ScrollView>
 
       <SaveDetectionModal
         visible={saveModalVisible}
         onClose={closeSaveModal}
-        onSave={continueToPendingRoute}
-        onDontSave={continueToPendingRoute}
+        onSave={saveToHistory}
+        onDontSave={navigateToPendingRoute}
       />
     </>
   );
@@ -250,24 +452,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B1220",
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 0.1,
   },
+    mainHistory: {
+    flex: 1,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 27,
+    borderTopRightRadius: 27,
+    backgroundColor: "#0A0D0C",
+    paddingTop: 16,
+    paddingBottom: 70,
+    marginTop: -20,
+    },
   modelCard: {
     flexDirection: "row",
-    backgroundColor: "#1B2433",
+    backgroundColor: "#0A0D0C",
     borderRadius: 20,
     padding: 12,
     marginBottom: 20,
   },
   imageWrapper: {
-    width: width * 0.25,
-    height: width * 0.25,
-    borderRadius: 12,
-    marginRight: 12,
+    width: width * 1,
+    height: width * 0.7,
     overflow: "hidden",
     position: "relative",
     backgroundColor: "#0F172A",
+    justifyContent: "center",
+    alignItems: "center",
   },
   image: {
     width: "100%",
@@ -277,10 +488,15 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     width: "100%",
     height: "100%",
-    opacity: 0.72,
+    opacity: 1,
   },
   modelInfo: {
     flex: 1,
+  },
+  row2: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   row: {
     flexDirection: "row",
@@ -302,9 +518,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  toggleBtnDisabled: {
+    opacity: 0.75,
+  },
   toggleText: {
     color: "#00E0FF",
     marginLeft: 5,
+    fontWeight: "600",
+  },
+  toggleTextDisabled: {
+    color: "#64748B",
   },
   resultCard: {
     flexDirection: "row",
@@ -343,7 +566,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   section: {
-    backgroundColor: "#1B2433",
+    backgroundColor: "#0A0D0C",
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,

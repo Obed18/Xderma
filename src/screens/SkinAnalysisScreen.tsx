@@ -12,9 +12,14 @@ import {
   Alert,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import {
+  Info,
+} from "lucide-react-native";
+
 import { Camera, Upload, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useNavigation } from '@react-navigation/native';
 import { useXderma } from '../context/AppContext';
 import { analyzeImageQuality } from '../utils/imageQuality';
 import {
@@ -78,6 +83,8 @@ const imageFromAsset = (asset: ImagePicker.ImagePickerAsset): SelectedImage => (
 });
 
 export default function SkinAnalysisScreen({ navigation }: any) {
+  const stackNavigation = useNavigation<any>();
+  const appNavigation = navigation ?? stackNavigation;
   const { t } = useXderma();
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
   const [symptoms, setSymptoms] = useState('');
@@ -161,7 +168,7 @@ export default function SkinAnalysisScreen({ navigation }: any) {
         mimeType: getImageMimeType(selectedImage),
       });
 
-      navigation.navigate('ResultsScreen', {
+      appNavigation.navigate('ResultsScreen', {
         image: selectedImage.uri,
         symptoms,
         prediction,
@@ -236,23 +243,15 @@ export default function SkinAnalysisScreen({ navigation }: any) {
             </View>
           )}
 
-          <View style={styles.samplesContainer}>
-            <Text style={styles.sampleTitle}>{t('skinAnalysis.sampleTitle')}</Text>
-            <View style={styles.samplesRow}>
-              {SAMPLE_IMAGES.map((img, index) => (
-                <TouchableOpacity
-                  key={img.uri}
-                  style={[
-                    styles.sampleBtn,
-                    selectedImage?.uri === img.uri && styles.sampleBtnSelected,
-                  ]}
-                  onPress={() => setValidatedImage(img)}
-                >
-                  <Image source={{ uri: img.uri }} style={styles.sampleImg} />
-                </TouchableOpacity>
-              ))}
+            <View style={styles.advisory}>
+              <View style={styles.row}>
+                <Info size={18} color="#00E0FF" />
+                <Text style={styles.advisoryTitle}>Clinical Advisory</Text>
+              </View>
+              <Text style={styles.advisoryText}>
+                XDerma provides AI screening support only. It is not a medical diagnosis and should not replace an in-person dermatology evaluation.
+              </Text>
             </View>
-          </View>
 
           <TouchableOpacity
             style={[
@@ -395,37 +394,30 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FCA5A5',
   },
-  samplesContainer: {
-    borderWidth: 1,
-    borderColor: '#374151',
-    borderRadius: 16,
-    padding: 12,
+  advisory: {
+    backgroundColor: "#102235",
+    padding: 16,
+    borderRadius: 20,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0, 224, 255, 0.22)",
   },
-  sampleTitle: {
-    color: '#D1D5DB',
-    marginBottom: 10,
-    fontFamily: 'Poppins_600SemiBold',
+  advisoryTitle: {
+    color: "#00E0FF",
+    marginLeft: 6,
+    fontWeight: "600",
   },
-  samplesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  advisoryText: {
+    color: "#AEB8C7",
+    marginTop: 8,
+    lineHeight: 20,
   },
-  sampleBtn: {
-    borderWidth: 2,
-    borderColor: 'transparent',
-    borderRadius: 14,
-    padding: 3,
+    row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
-  sampleBtnSelected: {
-    borderColor: '#22C55E',
-    backgroundColor: 'rgba(34, 197, 94, 0.14)',
-  },
-  sampleImg: {
-    width: width / 4,
-    height: width / 4,
-    borderRadius: 10,
-  },
+
   analyzeBtn: {
     backgroundColor: '#1F2937',
     padding: 14,

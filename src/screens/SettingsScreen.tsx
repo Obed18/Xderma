@@ -236,7 +236,7 @@ const SettingsItem: React.FC<any> = ({
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
-    backgroundColor: "#0B1B2B",
+    backgroundColor: "#0A0D0C",
     paddingVertical: 40,
 },
   center: {
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   header: {
-    backgroundColor: "#0B1B2B",
+    backgroundColor: "#0A0D0C",
     paddingBottom: 30,
     paddingTop: 50,
     borderTopLeftRadius: 24,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   primaryText: { color: "#fff", fontWeight: "600" },
 
   card: {
-    backgroundColor: "#1b2f43",
+    backgroundColor: "#0A0D0C",
     padding: 12,
     borderRadius: 20,
     paddingVertical: 10,
