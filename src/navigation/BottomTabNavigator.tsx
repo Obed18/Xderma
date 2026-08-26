@@ -23,7 +23,8 @@ import {
 
 import HomeScreen from '../screens/HomeScreen';
 import XDermaChatLanding from '../screens/XDermaChatLanding';
-import NotificationSettings from '../screens/NotificationSettings';
+// import NotificationSettings from '../screens/NotificationSettings';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
@@ -159,7 +160,7 @@ export default function BottomTabNavigator({
       case 'chat':
         return <XDermaChatLanding />;
       case 'notifications':
-        return <NotificationSettings />;
+        return <NotificationsScreen />;
       case 'history':
         return <HistoryScreen />;
       case 'profile':
@@ -197,7 +198,7 @@ export default function BottomTabNavigator({
               >
                 <Icon
                   size={isVerySmall ? 22 : 25}
-                  color={active === id ? '#F5F5F5' : '#D7D7D9'}
+                  color={active === id ? '#FFF' : '#616162'}
                   strokeWidth={1.9}
                 />
               </NavButton>
@@ -304,16 +305,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 6,
     borderRadius: 34,
-    backgroundColor: '#242426',
+    backgroundColor: 'rgba(236, 246, 250, 0.85)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.055)',
-    // iOS shadow
+    borderColor: 'rgba(20, 144, 217, 0.15)',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 8,
     },
-    shadowOpacity: 0.42,
+    shadowOpacity: 0.08,
     shadowRadius: 18,
     // Android
     elevation: 10,
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   },
 
   activeNavButton: {
-    backgroundColor: 'rgba(255,255,255,0.055)',
+    backgroundColor: '#0A9DED',
 
     // Very subtle depth
     borderWidth: 1,

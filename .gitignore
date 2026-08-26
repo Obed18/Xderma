@@ -4,6 +4,7 @@
 node_modules/
 docs/
 README.md
+docs/ai-backend-integration.md
 
 # Expo
 .expo/

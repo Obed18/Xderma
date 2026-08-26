@@ -91,12 +91,12 @@ const requestWithTimeout = async (
   } catch (error: any) {
     if (error?.name === "AbortError") {
       throw new SkinAnalysisApiError(
-        "The AI analysis timed out. Make sure the backend is running, the app is using your current computer IP address, and the phone is on the same network."
+        `The AI analysis timed out while calling ${API_URL}. Make sure the backend is running, the app is using your current computer IP address, and the phone is on the same network.`
       );
     }
 
     throw new SkinAnalysisApiError(
-      "Could not connect to the AI analysis server. Make sure the backend is running and reachable from this device."
+      `Could not connect to the AI analysis server at ${API_URL}. Make sure the backend is running and reachable from this device.`
     );
   } finally {
     clearTimeout(timeoutId);
@@ -137,7 +137,10 @@ export const analyzeSkinImage = async (
         ? payload.detail
         : "The AI server could not process this image.";
 
-    throw new SkinAnalysisApiError(detail, response.status);
+    throw new SkinAnalysisApiError(
+      `${detail} (${response.status} from ${API_URL}/predict)`,
+      response.status
+    );
   }
 
   return payload as SkinPrediction;

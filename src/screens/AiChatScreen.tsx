@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: NAVY,
+    backgroundColor: "NAVY",
   },
 
   header: {
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
 
   chatSurface: {
     flex: 1,
-    backgroundColor: WHITE,
+    backgroundColor: "#fff",
     borderTopLeftRadius: 27,
     borderTopRightRadius: 27,
     overflow: 'hidden',
@@ -1007,7 +1007,7 @@ const styles = StyleSheet.create({
   },
 
   composerWrapper: {
-    backgroundColor: WHITE,
+    backgroundColor: "#fff",
     paddingHorizontal: 18,
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 9 : 10,

@@ -63,8 +63,77 @@ cd "C:\Users\IN JESUS IS LIFE\Downloads\XDERMA PROJECT\xderma"
 npm run start:online
 ```
 
+If you need a tunnel directly, skip Expo's online dependency validation check:
+
+```powershell
+$env:EXPO_NO_DEPENDENCY_VALIDATION="1"
+npx.cmd expo start --clear --tunnel
+```
+
 Restart Expo after changing `.env`.
 
+Adding a Specialist
+
+Invoke-RestMethod -Method Post `
+  -Uri "https://thkkdsjvaoficunylgkc.supabase.co/functions/v1/create-specialist-telegram-link" `
+  -Headers @{
+    "Content-Type" = "application/json"
+    "Authorization" = "Bearer sb_publishable_pR2EXPhYcGHsq0wmWss6bA_Gbz87xrH"
+    "apikey" = "sb_publishable_pR2EXPhYcGHsq0wmWss6bA_Gbz87xrH"
+  } `
+  -Body (@{ specialist_name = "Dr. Obed Otu Ayor" } | ConvertTo-Json)
+
+## Telegram Specialist Chat
+
+Deploy the Telegram Edge Functions:
+
+```powershell
+cd "C:\Users\IN JESUS IS LIFE\Downloads\XDERMA PROJECT\xderma"
+npx.cmd supabase functions deploy create-specialist-telegram-link --project-ref thkkdsjvaoficunylgkc
+npx.cmd supabase functions deploy send-specialist-telegram-message --project-ref thkkdsjvaoficunylgkc
+npx.cmd supabase functions deploy telegram-webhook --project-ref thkkdsjvaoficunylgkc
+npx.cmd supabase functions deploy configure-telegram-webhook --project-ref thkkdsjvaoficunylgkc
+```
+
+Required Supabase Edge Function secrets:
+
+```powershell
+npx.cmd supabase secrets set TELEGRAM_BOT_TOKEN="your-telegram-bot-token" --project-ref thkkdsjvaoficunylgkc
+npx.cmd supabase secrets set TELEGRAM_BOT_USERNAME="xdermaspecialist_bot" --project-ref thkkdsjvaoficunylgkc
+```
+
+After deploying `telegram-webhook`, tell Telegram where to send bot updates:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri "https://thkkdsjvaoficunylgkc.supabase.co/functions/v1/configure-telegram-webhook" `
+  -Headers @{
+    "Content-Type" = "application/json"
+    "Authorization" = "Bearer sb_publishable_pR2EXPhYcGHsq0wmWss6bA_Gbz87xrH"
+    "apikey" = "sb_publishable_pR2EXPhYcGHsq0wmWss6bA_Gbz87xrH"
+  } `
+  -Body (@{ action = "set" } | ConvertTo-Json)
+```
+
+Check the current Telegram webhook:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri "https://thkkdsjvaoficunylgkc.supabase.co/functions/v1/configure-telegram-webhook" `
+  -Headers @{
+    "Content-Type" = "application/json"
+    "Authorization" = "Bearer sb_publishable_pR2EXPhYcGHsq0wmWss6bA_Gbz87xrH"
+    "apikey" = "sb_publishable_pR2EXPhYcGHsq0wmWss6bA_Gbz87xrH"
+  } `
+  -Body (@{ action = "info" } | ConvertTo-Json)
+```
+
+If a specialist pressed Start before the webhook was configured, Telegram will not necessarily replay that click. Ask them to open the generated link again or send the command manually in the bot chat:
+
+```text
+/start xd_your_connection_code
+```
+  
 ## Data Flow
 
 1. User captures or selects a lesion image in `SkinAnalysisScreen`.

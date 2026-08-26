@@ -222,7 +222,7 @@ export default function SkinAnalysisScreen({ navigation }: any) {
             {!selectedImage && (
               <View style={styles.buttonRow}>
                 <TouchableOpacity style={styles.browseBtn} onPress={pickImage}>
-                  <Images color="#00E0FF" size={18} />
+                  <Images color="#097887" size={18} />
                   <Text style={styles.browseText}>Gallery</Text>
                 </TouchableOpacity>
 
@@ -238,7 +238,7 @@ export default function SkinAnalysisScreen({ navigation }: any) {
               <TextInput
                 style={styles.symptomsInput}
                 placeholder={t('skinAnalysis.symptomsPlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#646567"
                 value={symptoms}
                 onChangeText={setSymptoms}
                 multiline
@@ -246,21 +246,10 @@ export default function SkinAnalysisScreen({ navigation }: any) {
               />
             </View>
           )}
-
-            {/* <View style={styles.advisory}>
-              <View style={styles.row}>
-                <Info size={18} color="#00E0FF" />
-                <Text style={styles.advisoryTitle}>Clinical Advisory</Text>
-              </View>
-              <Text style={styles.advisoryText}>
-                XDerma provides AI screening support only. It is not a medical diagnosis and should not replace an in-person dermatology evaluation.
-              </Text>
-            </View> */}
-
           <TouchableOpacity
             style={[
               styles.analyzeBtn,
-              { backgroundColor: selectedImage && !isAnalyzing ? '#00FFC6' : '#1F2937' },
+              { backgroundColor: selectedImage && !isAnalyzing ? '#0A9DED' : '#b2b2b3' },
             ]}
             disabled={!selectedImage || isAnalyzing}
             onPress={handleAnalyze}
@@ -268,7 +257,7 @@ export default function SkinAnalysisScreen({ navigation }: any) {
             <Text
               style={[
                 styles.analyzeText,
-                { color: selectedImage && !isAnalyzing ? '#000000' : '#9CA3AF' },
+                { color: selectedImage && !isAnalyzing ? '#fff' : '#eff0f3' },
               ]}
             >
               {isAnalyzing ? t('skinAnalysis.analyzing') : t('skinAnalysis.analyze')}
@@ -299,8 +288,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: '#0A0D0C',
-    margin: 16,
+    backgroundColor: '#ffffff',
+    margin: 8,
     borderRadius: 20,
     padding: 20,
   },
@@ -309,7 +298,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderTopLeftRadius: 27,
         borderTopRightRadius: 27,
-        backgroundColor: "#0A0D0C",
+        backgroundColor: "#ffffff",
         paddingTop: 16,
     paddingBottom: 70,
     },
@@ -330,7 +319,7 @@ const styles = StyleSheet.create({
     },
 
   title: {
-    color: '#F9FAFB',
+    color: '#000',
     fontSize: 22,
     fontWeight: '700',
     marginBottom: 8,
@@ -338,7 +327,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    color: '#9CA3AF',
+    color: '#565a60',
     fontSize: 14,
     marginBottom: 20,
     fontFamily: 'Poppins_400Regular',
@@ -346,21 +335,21 @@ const styles = StyleSheet.create({
   },
   uploadBox: {
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: '#b5d2ff',
     borderStyle: 'dashed',
     borderRadius: 16,
     padding: 50,
     alignItems: 'center',
     marginBottom: 20,
     position: 'relative',
-    backgroundColor: '#1f29377c',
+    backgroundColor: '#d0e0f9',
   },
   uploadBoxSelected: {
-    borderColor: '#22C55E',
-    backgroundColor: '#00ffc81f',
+    borderColor: '#0A9DED',
+    backgroundColor: '#0a9ded4d',
   },
   uploadText: {
-    color: '#E5E7EB',
+    color: '#000',
     marginTop: 10,
     fontFamily: 'Poppins_500Medium',
   },
@@ -379,22 +368,22 @@ const styles = StyleSheet.create({
   browseBtn: {
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#00E0FF34',
+    borderColor: '#09788746',
     padding: 15,
     borderRadius: 14,
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#00E0FF10',
+    backgroundColor: '#0a92a318',
   },
   browseText: {
-    color: '#00E0FF',
+    color: '#097887',
     fontFamily: 'Poppins_600SemiBold',
   },
   cameraBtn: {
     flexDirection: 'row',
-    backgroundColor: '#a5b4fc18',
+    backgroundColor: '#a5b4fc32',
     borderWidth: 1,
-    borderColor: '#a5b4fc3b',
+    borderColor: '#a5b4fc32',
     paddingVertical: 15,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -448,7 +437,7 @@ const styles = StyleSheet.create({
   },
 
   analyzeBtn: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0A9DED',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -474,12 +463,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_600SemiBold',
   },
   symptomsInput: {
-    color: '#F9FAFB',
+    color: '#030303',
     fontSize: 14,
     padding: 12,
-    backgroundColor: '#3741518f',
+    backgroundColor: '#c7c7c98f',
     minHeight: 84,
-    borderRadius: 20,
+    borderRadius: 10,
     textAlignVertical: 'top',
     
   },

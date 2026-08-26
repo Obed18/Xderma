@@ -180,7 +180,7 @@ export default function HistoryScreen() {
                             <Text
                                 style={[
                                     styles.filterText,
-                                    activeFilter === item && { color: "#000" },
+                                    activeFilter === item && { color: "#f8f4f4" },
                                 ]}
                             >
                                 {item}
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderTopLeftRadius: 27,
         borderTopRightRadius: 27,
-        backgroundColor: "#0A0D0C",
+        backgroundColor: "#fff",
         paddingTop: 16,
     },
 
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     },
 
     summaryTitle: {
-        color: "#9CA3AF",
+        color: "#2c2c2d",
         marginBottom: 10,
     },
 
@@ -259,13 +259,13 @@ const styles = StyleSheet.create({
     },
 
     summaryValue: {
-        color: "#fff",
+        color: "#0b0b0b",
         fontSize: 18,
         fontWeight: "bold",
     },
 
     summaryLabel: {
-        color: "#6B7280",
+        color: "#363a41",
         fontSize: 12,
     },
 
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     filterBtn: {
         paddingVertical: 6,
         paddingHorizontal: 14,
-        backgroundColor: "#1F2937",
+        backgroundColor: "#e3e5e7",
         borderRadius: 20,
         marginRight: 8,
     },
@@ -287,12 +287,12 @@ const styles = StyleSheet.create({
     },
 
     filterText: {
-        color: "#9CA3AF",
+        color: "#71767e",
     },
 
     card: {
         flexDirection: "row",
-        backgroundColor: "#1e2432",
+        backgroundColor: "#fff",
         borderRadius: 16,
         padding: 10,
         marginBottom: 12,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
 
     imagePlaceholder: {
         alignItems: "center",
-        backgroundColor: "#111827",
+        backgroundColor: "#fff",
         justifyContent: "center",
     },
 
@@ -317,23 +317,23 @@ const styles = StyleSheet.create({
     },
 
     condition: {
-        color: "#fff",
+        color: "#000",
         fontSize: 16,
         fontWeight: "600",
     },
 
     confidence: {
-        color: "#9CA3AF",
+        color: "#494d53",
         fontSize: 12,
     },
 
     date: {
-        color: "#6B7280",
+        color: "#35383f",
         fontSize: 11,
     },
 
     badgeText: {
-        color: "#fff",
+        color: "#2b2a2a",
         fontSize: 10,
     },
 });

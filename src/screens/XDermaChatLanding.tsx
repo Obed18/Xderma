@@ -32,21 +32,21 @@ interface XDermaChatLandingProps {
   onSelectChat?: (type: ChatType) => void;
 }
 
-const BG = "#0A0D0C";
-const SURFACE = "#111614";
-const SURFACE_ELEVATED = "#1A1E1C";
+const BG = "#FFFFFF";
+const SURFACE = "#d4ebf7";
+const SURFACE_ELEVATED = "#d4ebf7";
 
-const WHITE = "#F4F7F4";
-const TEXT = "#E8ECE9";
-const TEXT_SECONDARY = "#89938D";
+const WHITE = "#ffffff";
+const TEXT = "#4b4b4b";
+const TEXT_SECONDARY = "#5a5c5b";
 const TEXT_TERTIARY = "#626C66";
 
 // Single restrained accent - desaturated, sophisticated teal
-const ACCENT = "#6B9B7E";
+const ACCENT = "#50715d";
 const VERIFICATION_BLUE = "#1DA1F2";
 
-const BORDER = "#202723";
-const BORDER_SUBTLE = "#1A1E1C";
+const BORDER = "#d4ebf7";
+const BORDER_SUBTLE = "#d4ebf7";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     lineHeight: 41,
     letterSpacing: -1.7,
     fontWeight: "800",
-    color: WHITE,
+    color: "#0A9DED",
   },
 
   heroTitleSmall: {
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
 
   heroAccent: {
-    color: WHITE,
+    color: "#0A9DED",
   },
 
   heroDescription: {
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 0,
     bottom: 0,
-    backgroundColor: ACCENT,
+    backgroundColor: "#03cc03",
     borderWidth: 2,
   },
 
@@ -863,7 +863,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#1C221F",
+    borderTopColor: "#c2c3c3",
   },
 
   featureItem: {
