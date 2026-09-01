@@ -12,7 +12,7 @@ import LoginScreen from '../screens/LoginScreen';
 import Main from './BottomTabNavigator';
 import SkinAnalysisScreen from '../screens/SkinAnalysisScreen';
 import AnalysisCard from '../screens/AnalysisCard';
-import PasswordRecovery from '../screens/PasswordRecovery';
+import PasswordRecovery from '../screens/PasswordResetScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import LanguageScreen from '../screens/LanguageScreen';

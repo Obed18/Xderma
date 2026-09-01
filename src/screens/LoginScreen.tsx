@@ -8,7 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator, ImageBackground, Dimensions,
+  ActivityIndicator, ImageBackground, Dimensions, Image,
 } from "react-native";
 import { Mail, Lock } from "lucide-react-native";
 import { useNavigation } from '@react-navigation/native';
@@ -107,13 +107,18 @@ const LoginScreen: React.FC = () => {
       >
         {/* ================= HEADER ================= */}
         <View style={styles.header}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.headerTitle}>
-            {isSignup ? t("auth.createAccount") : t("auth.welcomeBack")}
+            {isSignup ? "Create Account" : "Welcome Back"}
           </Text>
           <Text style={styles.headerSubtitle}>
             {isSignup
-              ? t("auth.joinMarketplace")
-              : t("auth.loginContinue")}
+              ? "Join XDerma to experience the best AI Dermatologist. "
+              : "Log in to Xderma to experience the best AI Dermatologist."}
           </Text>
         </View>
 
@@ -239,7 +244,7 @@ const LoginScreen: React.FC = () => {
 /* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1B2B" },
+  container: { flex: 1, backgroundColor: "#0A9DED" },
   scrollContainer: { flexGrow: 1 },
   backgroundImage: {
     flex: 1,
@@ -253,25 +258,35 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: "#7C8BA1",
-    paddingVertical: 100,
+    backgroundColor: "#b1dcf7",
+    paddingVertical: 60,
     paddingHorizontal: 30,
     borderBottomRightRadius: 20,
     borderBottomLeftRadius: 20,
   },
 
+  logo: {
+    width: width * 0.4,  
+    height: width * 0.4,
+    maxWidth: 280,
+    maxHeight: 280,
+    margin: "auto",
+  },
+
   headerTitle: {
-    color: "#e5edff",
+    color: "#0a0a0a",
     fontSize: 28,
     marginBottom: 6,
     fontFamily: 'Poppins_700Bold',
+    textAlign: "center",
   },
 
   headerSubtitle: {
-    color: "#dfe4f1",
+    color: "#1d1d1d",
     opacity: 0.9,
     fontSize: 15,
     fontFamily: 'Poppins_400Regular',
+    textAlign: "center",
   },
 
   formWrapper: {
@@ -281,7 +296,7 @@ const styles = StyleSheet.create({
   },
 
   formCard: {
-    backgroundColor: "#1a344d",
+    backgroundColor: "#f8f9fb",
     borderRadius: 24,
     padding: 20,
     elevation: 8,
@@ -295,7 +310,7 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 13,
-    color: "#a4acbb",
+    color: "#070808",
     marginBottom: 8,
     fontFamily: 'Poppins_400Regular',
   },
@@ -303,7 +318,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0B1B2B",
+    backgroundColor: "#eceeef",
     borderRadius: 16,
     paddingHorizontal: 15,
     paddingVertical: 15,
@@ -319,7 +334,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: "#ced3dd",
+    color: "#060606",
     fontFamily: 'Poppins_400Regular',
   },
 

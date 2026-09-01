@@ -34,6 +34,8 @@ interface XdermaState {
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  verifyResetCode: (email: string, code: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 interface XdermaProviderProps {
@@ -227,7 +229,61 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data, error } = await supabase.functions.invoke(
+      'send-password-reset-code',
+      {
+        body: {
+          email: normalizedEmail,
+        },
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data?.success) {
+      throw new Error(
+        data?.message || 'Unable to send password reset code.'
+      );
+    }
+  };
+
+  const verifyResetCode = async (email: string, code: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data, error } = await supabase.functions.invoke(
+      'verify-reset-code',
+      {
+        body: {
+          email: normalizedEmail,
+          code,
+        },
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data?.success) {
+      throw new Error(
+        data?.message || 'Unable to verify reset code.'
+      );
+    }
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.functions.invoke(
+      'update-password',
+      {
+        body: {
+          password,
+        },
+      }
+    );
 
     if (error) {
       throw error;
@@ -248,6 +304,8 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
       signup,
       logout,
       resetPassword,
+      verifyResetCode,
+      updatePassword,
     }),
     [authLoading, language, user]
   );

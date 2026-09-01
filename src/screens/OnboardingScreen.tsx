@@ -31,7 +31,7 @@ const { width } = Dimensions.get("window");
 const slides = [
   {
     image: require("../assets/face-scan.png"),
-    title: "Take Live Pictures to Scan Your Skin",
+    title: "Take Pictures to Scan Your Skin",
     description: "Use your camera to capture real-time images and get instant AI-powered skin analysis.",
   },
   {
@@ -100,7 +100,7 @@ export const OnboardingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1B2B",
+    backgroundColor: "#b1dcf7",
     padding: 24,
     justifyContent: "space-between",
     alignItems: "center",
@@ -120,13 +120,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#d9d9d9",
+    color: "#000000",
     textAlign: "center",
     marginBottom: 12,
   },
   description: {
     fontSize: 16,
-    color: "#b0b0b0",
+    color: "#6e6d6d",
     textAlign: "center",
     marginHorizontal: 16,
     marginBottom: 24,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     height: 8,
     width: 8,
     borderRadius: 4,
-    backgroundColor: "#d1d5db",
+    backgroundColor: "#8b8d90",
     marginHorizontal: 4,
   },
   activeIndicator: {

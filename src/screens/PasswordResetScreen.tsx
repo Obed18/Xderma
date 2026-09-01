@@ -8,13 +8,16 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  ActivityIndicator, Image, Dimensions,
 } from "react-native";
 import { Mail } from "lucide-react-native";
 import { useXderma } from "../context/AppContext";
 
+const { width } = Dimensions.get('window');
+
+
 const PasswordResetScreen: React.FC = () => {
-  const { resetPassword } = useXderma();
+  const { resetPassword, verifyResetCode, updatePassword } = useXderma();
 
   const [email, setEmail] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState("");
@@ -24,6 +27,34 @@ const PasswordResetScreen: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   const codeInputRef = useRef<TextInput>(null);
+  const [showNewPasswordStep, setShowNewPasswordStep] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [codeVerified, setCodeVerified] = useState(false);
+
+  const handleVerifyCode = async () => {
+  if (resetCode.length !== 6) {
+    setError("Enter the complete 6-digit code");
+    return;
+  }
+
+  setLoading(true);
+  setError("");
+  setSuccess(null);
+
+  try {
+    await verifyResetCode(submittedEmail, resetCode);
+
+    setCodeVerified(true);
+    setShowNewPasswordStep(true);
+    setSuccess("Code verified successfully.");
+  } catch (err) {
+    console.log(err);
+    setError("Invalid or expired verification code.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const validate = (): boolean => {
     if (!email.trim()) {
@@ -92,6 +123,11 @@ const PasswordResetScreen: React.FC = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.headerTitle}>Reset Password</Text>
           <Text style={styles.headerSubtitle}>
             {showCodeStep
@@ -176,7 +212,7 @@ const PasswordResetScreen: React.FC = () => {
 
             {loading ? (
               <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#FF6B00" />
+                <ActivityIndicator size="large" color="#0A9DED" />
                 <Text style={styles.loadingText}>Sending reset code...</Text>
               </View>
             ) : !showCodeStep ? (
@@ -187,14 +223,22 @@ const PasswordResetScreen: React.FC = () => {
                 <Text style={styles.submitText}>Send Reset Code</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={handleUseAnotherEmail}
-              >
+              <>
+                  <TouchableOpacity
+                    style={styles.submitButton}
+                    onPress={handleVerifyCode}
+                  >
+                    <Text style={styles.submitText}>Verify Code</Text>
+                  </TouchableOpacity>              
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={handleUseAnotherEmail}
+                  >
                 <Text style={styles.secondaryButtonText}>
                   Use Another Email
                 </Text>
               </TouchableOpacity>
+              </>
             )}
           </View>
         </View>
@@ -204,28 +248,40 @@ const PasswordResetScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#0A9DED" },
   scrollContainer: { flexGrow: 1 },
 
   header: {
-    backgroundColor: "#bcccff",
+    backgroundColor: "#b1dcf7",
     paddingVertical: 90,
     paddingHorizontal: 30,
     borderBottomRightRadius: 20,
     borderBottomLeftRadius: 20,
+    justifyContent: "center", 
   },
+
+  logo: {
+    width: width * 0.4,  
+    height: width * 0.4,
+    maxWidth: 280,
+    maxHeight: 280,
+    margin: "auto",
+  },
+
 
   headerTitle: {
     color: "#0F172A",
     fontSize: 28,
     fontWeight: "700",
     marginBottom: 6,
+    textAlign: "center",
   },
 
   headerSubtitle: {
     color: "#000000",
     opacity: 0.9,
     fontSize: 15,
+    textAlign: "center",
   },
 
   formWrapper: {
@@ -379,7 +435,7 @@ const styles = StyleSheet.create({
 
   loadingText: {
     marginLeft: 10,
-    color: "#FF6B00",
+    color: "#0A9DED",
     fontSize: 15,
     fontWeight: "500",
   },

@@ -2,5 +2,6 @@
   "deno.enable": true,
   "deno.enablePaths": ["src/supabase/functions"],
   "deno.config": "src/supabase/functions/deno.json",
+  "deno.nodeModulesDir": "root",
   "typescript.tsdk": "node_modules/typescript/lib"
 }
