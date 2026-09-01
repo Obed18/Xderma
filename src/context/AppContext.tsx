@@ -32,10 +32,12 @@ interface XdermaState {
   setSearchQuery: (query: string) => void;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
+  verifyAccount: (email: string, code: string, password: string) => Promise<void>;
+  resendAccountVerificationCode: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   verifyResetCode: (email: string, code: string) => Promise<void>;
-  updatePassword: (password: string) => Promise<void>;
+  updatePassword: (email: string, code: string, password: string) => Promise<void>;
 }
 
 interface XdermaProviderProps {
@@ -86,6 +88,24 @@ const upsertProfile = async (session: Session) => {
 
   if (error) {
     throw error;
+  }
+};
+
+const getFunctionErrorMessage = async (
+  error: unknown,
+  fallbackMessage: string
+) => {
+  const context = (error as { context?: Response })?.context;
+
+  if (!context) {
+    return error instanceof Error ? error.message : fallbackMessage;
+  }
+
+  try {
+    const data = await context.clone().json();
+    return data?.message || data?.error || fallbackMessage;
+  } catch {
+    return fallbackMessage;
   }
 };
 
@@ -203,8 +223,9 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
   const signup = async (email: string, password: string) => {
     setAuthLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: normalizedEmail,
         password,
       });
 
@@ -212,15 +233,72 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
         throw error;
       }
 
-      if (!data.session) {
-        throw new Error('Account created. Please confirm your email, then log in.');
+      await resendAccountVerificationCode(normalizedEmail);
+
+      if (data.session) {
+        await supabase.auth.signOut();
       }
 
-      await upsertProfile(data.session);
-      setUser(await createUserFromSession(data.session));
+      setUser(null);
     } finally {
       setAuthLoading(false);
     }
+  };
+
+  const resendAccountVerificationCode = async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data, error } = await supabase.functions.invoke(
+      'send-account-verification-code',
+      {
+        body: {
+          email: normalizedEmail,
+        },
+      }
+    );
+
+    if (error) {
+      throw new Error(
+        await getFunctionErrorMessage(
+          error,
+          'Unable to send account verification code.'
+        )
+      );
+    }
+
+    if (!data?.success) {
+      throw new Error(
+        data?.message || 'Unable to send account verification code.'
+      );
+    }
+  };
+
+  const verifyAccount = async (email: string, code: string, password: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data, error } = await supabase.functions.invoke(
+      'verify-account-code',
+      {
+        body: {
+          email: normalizedEmail,
+          code,
+        },
+      }
+    );
+
+    if (error) {
+      throw new Error(
+        await getFunctionErrorMessage(error, 'Unable to verify account.')
+      );
+    }
+
+    if (!data?.success) {
+      throw new Error(
+        data?.message || 'Unable to verify account.'
+      );
+    }
+
+    await login(normalizedEmail, password);
   };
 
   const logout = async () => {
@@ -241,7 +319,12 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
     );
 
     if (error) {
-      throw error;
+      throw new Error(
+        await getFunctionErrorMessage(
+          error,
+          'Unable to send password reset code.'
+        )
+      );
     }
 
     if (!data?.success) {
@@ -265,7 +348,9 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
     );
 
     if (error) {
-      throw error;
+      throw new Error(
+        await getFunctionErrorMessage(error, 'Unable to verify reset code.')
+      );
     }
 
     if (!data?.success) {
@@ -275,18 +360,30 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
     }
   };
 
-  const updatePassword = async (password: string) => {
-    const { error } = await supabase.functions.invoke(
+  const updatePassword = async (email: string, code: string, password: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data, error } = await supabase.functions.invoke(
       'update-password',
       {
         body: {
+          email: normalizedEmail,
+          code,
           password,
         },
       }
     );
 
     if (error) {
-      throw error;
+      throw new Error(
+        await getFunctionErrorMessage(error, 'Unable to update password.')
+      );
+    }
+
+    if (!data?.success) {
+      throw new Error(
+        data?.message || 'Unable to update password.'
+      );
     }
   };
 
@@ -302,6 +399,8 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
       setSearchQuery,
       login,
       signup,
+      verifyAccount,
+      resendAccountVerificationCode,
       logout,
       resetPassword,
       verifyResetCode,

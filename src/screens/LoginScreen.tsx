@@ -70,6 +70,11 @@ const LoginScreen: React.FC = () => {
 
       if (isSignup) {
         await signup(email, formData.password);
+        navigation.navigate("AccountVerification", {
+          email,
+          password: formData.password,
+        });
+        return;
       } else {
         await login(email, formData.password);
       }

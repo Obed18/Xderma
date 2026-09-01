@@ -1,6 +1,4 @@
-/// <reference path="../deno-types.d.ts" />
-
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type User } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,7 +73,7 @@ Deno.serve(async (req) => {
     }
 
     const user = usersData.users.find(
-      (u) => u.email?.toLowerCase() === normalizedEmail
+      (u: User) => u.email?.toLowerCase() === normalizedEmail
     );
 
     /*

@@ -13,6 +13,7 @@ import Main from './BottomTabNavigator';
 import SkinAnalysisScreen from '../screens/SkinAnalysisScreen';
 import AnalysisCard from '../screens/AnalysisCard';
 import PasswordRecovery from '../screens/PasswordResetScreen';
+import AccountVerificationScreen from '../screens/AccountVerificationScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import LanguageScreen from '../screens/LanguageScreen';
@@ -33,6 +34,7 @@ const AppNavigator = () => {
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />      
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="AccountVerification" component={AccountVerificationScreen} />
       <Stack.Screen name="Home" component={AiChatScreen} />
       <Stack.Screen name="AiChat" component={AiChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SpecialistChat" component={SpecialistChatScreen} options={{ headerShown: false }} />

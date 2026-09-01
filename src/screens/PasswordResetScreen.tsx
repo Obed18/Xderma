@@ -10,7 +10,7 @@ import {
   Platform,
   ActivityIndicator, Image, Dimensions,
 } from "react-native";
-import { Mail } from "lucide-react-native";
+import { Lock, Mail } from "lucide-react-native";
 import { useXderma } from "../context/AppContext";
 
 const { width } = Dimensions.get('window');
@@ -31,6 +31,44 @@ const PasswordResetScreen: React.FC = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [codeVerified, setCodeVerified] = useState(false);
+
+  const handleUpdatePassword = async () => {
+    if (!codeVerified) {
+      setError("Verify your reset code first.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setSuccess(null);
+
+    try {
+      await updatePassword(submittedEmail, resetCode, newPassword);
+      setSuccess("Password updated successfully. You can now log in.");
+      setShowCodeStep(false);
+      setShowNewPasswordStep(false);
+      setCodeVerified(false);
+      setEmail(submittedEmail);
+      setResetCode("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      console.log(err);
+      setError("Unable to update password. Please request a new code and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleVerifyCode = async () => {
   if (resetCode.length !== 6) {
@@ -84,7 +122,11 @@ const PasswordResetScreen: React.FC = () => {
 
       setSubmittedEmail(normalizedEmail);
       setShowCodeStep(true);
+      setShowNewPasswordStep(false);
+      setCodeVerified(false);
       setResetCode("");
+      setNewPassword("");
+      setConfirmPassword("");
       setSuccess(
         "A 6-digit password reset code has been sent to your email."
       );
@@ -107,7 +149,11 @@ const PasswordResetScreen: React.FC = () => {
 
   const handleUseAnotherEmail = () => {
     setShowCodeStep(false);
+    setShowNewPasswordStep(false);
+    setCodeVerified(false);
     setResetCode("");
+    setNewPassword("");
+    setConfirmPassword("");
     setSuccess(null);
     setError("");
   };
@@ -130,7 +176,9 @@ const PasswordResetScreen: React.FC = () => {
           />
           <Text style={styles.headerTitle}>Reset Password</Text>
           <Text style={styles.headerSubtitle}>
-            {showCodeStep
+            {showNewPasswordStep
+              ? "Create a new password for your account"
+              : showCodeStep
               ? "Enter the 6-digit code sent to your email"
               : "Enter your email to receive a 6-digit reset code"}
           </Text>
@@ -145,7 +193,7 @@ const PasswordResetScreen: React.FC = () => {
                 <View
                   style={[
                     styles.inputContainer,
-                    error && styles.inputError,
+                    error ? styles.inputError : null,
                   ]}
                 >
                   <Mail size={20} color="#9CA3AF" style={styles.icon} />
@@ -156,6 +204,56 @@ const PasswordResetScreen: React.FC = () => {
                     autoCapitalize="none"
                     value={email}
                     onChangeText={setEmail}
+                  />
+                </View>
+
+                {error ? (
+                  <Text style={styles.errorText}>{error}</Text>
+                ) : null}
+              </View>
+            ) : showNewPasswordStep ? (
+              <View style={styles.field}>
+                <Text style={styles.codeTitle}>Create New Password</Text>
+                <Text style={styles.codeDescription}>
+                  Enter a new password for {submittedEmail}
+                </Text>
+
+                <View
+                  style={[
+                    styles.inputContainer,
+                    error ? styles.inputError : null,
+                  ]}
+                >
+                  <Lock size={20} color="#9CA3AF" style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="New password"
+                    secureTextEntry
+                    value={newPassword}
+                    onChangeText={(text) => {
+                      setNewPassword(text);
+                      if (error) setError("");
+                    }}
+                  />
+                </View>
+
+                <View
+                  style={[
+                    styles.inputContainer,
+                    styles.confirmPasswordInput,
+                    error ? styles.inputError : null,
+                  ]}
+                >
+                  <Lock size={20} color="#9CA3AF" style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Confirm new password"
+                    secureTextEntry
+                    value={confirmPassword}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      if (error) setError("");
+                    }}
                   />
                 </View>
 
@@ -180,9 +278,10 @@ const PasswordResetScreen: React.FC = () => {
                       key={index}
                       style={[
                         styles.codeBox,
-                        resetCode.length === index &&
-                          styles.codeBoxActive,
-                        error && styles.codeBoxError,
+                        resetCode.length === index
+                          ? styles.codeBoxActive
+                          : null,
+                        error ? styles.codeBoxError : null,
                       ]}
                     >
                       <Text style={styles.codeDigit}>{digit}</Text>
@@ -221,6 +320,13 @@ const PasswordResetScreen: React.FC = () => {
                 onPress={handleReset}
               >
                 <Text style={styles.submitText}>Send Reset Code</Text>
+              </TouchableOpacity>
+            ) : showNewPasswordStep ? (
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handleUpdatePassword}
+              >
+                <Text style={styles.submitText}>Update Password</Text>
               </TouchableOpacity>
             ) : (
               <>
@@ -321,6 +427,10 @@ const styles = StyleSheet.create({
   inputError: {
     borderWidth: 1,
     borderColor: "#ef4444",
+  },
+
+  confirmPasswordInput: {
+    marginTop: 12,
   },
 
   icon: { marginRight: 8 },
