@@ -43,7 +43,7 @@ const ConfidenceCircle = ({ value }: { value: number }) => {
           cx={SIZE / 2}
           cy={SIZE / 2}
           r={RADIUS}
-          stroke="rgba(255,255,255,0.12)"
+          stroke="rgba(196, 196, 196, 0.57)"
           strokeWidth={STROKE_WIDTH}
           fill="none"
         />
@@ -90,13 +90,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   text: {
-    color: "#fff",
+    color: "#000000",
     fontWeight: "bold",
     fontSize: 16,
   },
   label: {
     fontSize: 10,
-    color: "#aaa",
+    color: "#3c3b3b",
     marginTop: 2,
   },
 });

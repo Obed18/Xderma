@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   ImageSourcePropType,
@@ -17,18 +18,11 @@ import {
   ChevronRight,
   MoreVertical,
 } from "lucide-react-native";
-
-type NotificationSource = "ai" | "specialist" | "app";
-
-type NotificationItem = {
-  id: string;
-  title: string;
-  message: string;
-  time: string;
-  date: "Today" | "Yesterday" | "Tuesday";
-  source: NotificationSource;
-  unread?: boolean;
-};
+import {
+  getNotifications,
+  NotificationItem,
+  NotificationSource,
+} from "../services/notificationsService";
 
 const NAVY = "#b1dcf7";
 const HEADER_TEXT = "#212625";
@@ -42,68 +36,6 @@ const sourceImages: Partial<Record<NotificationSource, ImageSourcePropType>> = {
   ai: require("../assets/xderma-icon.png"),
   specialist: require("../assets/specialist.png"),
 };
-
-const notifications: NotificationItem[] = [
-  {
-    id: "1",
-    title: "Skin analysis completed",
-    message: "Your latest skin analysis is ready to review.",
-    time: "Today at 9:12 AM",
-    date: "Today",
-    source: "app",
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "XDerma AI has an update",
-    message: "XDerma AI generated a detailed screening summary for you.",
-    time: "Today at 8:45 AM",
-    date: "Today",
-    source: "ai",
-    unread: true,
-  },
-  {
-    id: "3",
-    title: "Analysis reminder",
-    message: "It's been 30 days since your last skin check.",
-    time: "Yesterday at 4:30 PM",
-    date: "Yesterday",
-    source: "app",
-  },
-  {
-    id: "4",
-    title: "New AI insight available",
-    message: "XDerma AI identified a new insight from your recent scans.",
-    time: "Yesterday at 11:20 AM",
-    date: "Yesterday",
-    source: "ai",
-    unread: true,
-  },
-  {
-    id: "5",
-    title: "Your screening history was updated",
-    message: "Your latest analysis has been added to your health history.",
-    time: "Tuesday at 3:05 PM",
-    date: "Tuesday",
-    source: "app",
-  },
-  {
-    id: "6",
-    title: "Secure sign-in detected",
-    message: "A new sign-in to your XDerma account was detected.",
-    time: "Tuesday at 10:18 AM",
-    date: "Tuesday",
-    source: "app",
-  },
-  {
-    id: "7",
-    title: "XDerma specialist reminder",
-    message: "Your upcoming dermatology consultation is scheduled for tomorrow.",
-    time: "Monday at 6:40 PM",
-    date: "Tuesday",
-    source: "specialist",
-  },
-];
 
 const NotificationMark = ({
   source,
@@ -198,6 +130,37 @@ const NotificationRow = ({
 export default function NotificationsScreen() {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 360;
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadNotifications = async () => {
+      try {
+        const nextNotifications = await getNotifications();
+        if (isMounted) {
+          setNotifications(nextNotifications);
+        }
+      } catch (error) {
+        console.error("Failed to load notifications", error);
+        if (isMounted) {
+          setNotifications([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadNotifications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const unreadCount = notifications.filter(
     (notification) => notification.unread
   ).length;
@@ -206,15 +169,16 @@ export default function NotificationsScreen() {
     const groups: Record<string, NotificationItem[]> = {};
 
     notifications.forEach((notification) => {
-      if (!groups[notification.date]) {
-        groups[notification.date] = [];
+      const bucket = notification.date || "Recent";
+      if (!groups[bucket]) {
+        groups[bucket] = [];
       }
 
-      groups[notification.date].push(notification);
+      groups[bucket].push(notification);
     });
 
     return Object.entries(groups);
-  }, []);
+  }, [notifications]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -242,40 +206,54 @@ export default function NotificationsScreen() {
 
       <View style={styles.surface}>
         <View style={styles.card}>
-          <FlatList
-            data={groupedNotifications}
-            keyExtractor={([date]) => date}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item: [date, items], index }) => (
-              <View>
-                <Text
-                  style={[
-                    styles.dateText,
-                    index > 0 && styles.dateTextSpacing,
-                  ]}
-                >
-                  {date}
-                </Text>
+          {loading ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="small" color="#1E90FF" />
+              <Text style={styles.loadingText}>Loading notifications…</Text>
+            </View>
+          ) : groupedNotifications.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Bell size={28} color="#8A9099" strokeWidth={1.8} />
+              <Text style={styles.emptyStateTitle}>No notifications yet</Text>
+              <Text style={styles.emptyStateText}>
+                Your skin updates, AI chats, and specialist notes will appear here.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={groupedNotifications}
+              keyExtractor={([date]) => date}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item: [date, items], index }) => (
+                <View>
+                  <Text
+                    style={[
+                      styles.dateText,
+                      index > 0 && styles.dateTextSpacing,
+                    ]}
+                  >
+                    {date}
+                  </Text>
 
-                {items.map((notification, notificationIndex) => (
-                  <React.Fragment key={notification.id}>
-                    <NotificationRow
-                      item={notification}
-                      index={index + notificationIndex}
-                      compact={isSmallScreen}
-                    />
+                  {items.map((notification, notificationIndex) => (
+                    <React.Fragment key={notification.id}>
+                      <NotificationRow
+                        item={notification}
+                        index={index + notificationIndex}
+                        compact={isSmallScreen}
+                      />
 
-                    {notificationIndex < items.length - 1 && (
-                      <View style={styles.divider} />
-                    )}
-                  </React.Fragment>
-                ))}
-              </View>
-            )}
-          />
+                      {notificationIndex < items.length - 1 && (
+                        <View style={styles.divider} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </View>
+              )}
+            />
+          )}
         </View>
-
       </View>
     </SafeAreaView>
   );
@@ -369,6 +347,42 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 8,
     paddingBottom: 10,
+  },
+
+  loadingState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+    gap: 10,
+  },
+
+  loadingText: {
+    color: MUTED,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    paddingVertical: 24,
+    gap: 10,
+  },
+
+  emptyStateTitle: {
+    color: HEADER_TEXT,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  emptyStateText: {
+    color: MUTED,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
   },
 
   dateText: {

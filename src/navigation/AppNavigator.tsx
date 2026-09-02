@@ -47,7 +47,7 @@ const AppNavigator = () => {
               options={{
             headerShown: true, 
             title: t('nav.language'),
-            headerStyle: { backgroundColor: '#bcccff' },
+            headerStyle: { backgroundColor: '#b1dcf7' },
             headerTintColor: '#0F172A',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },
             headerBackTitle: 'Back', // iOS
@@ -57,7 +57,7 @@ const AppNavigator = () => {
               options={{
             headerShown: true, 
             title: t('nav.privacy'),
-            headerStyle: { backgroundColor: '#bcccff' },
+            headerStyle: { backgroundColor: '#b1dcf7' },
             headerTintColor: '#0F172A',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },
             headerBackTitle: 'Back', // iOS
@@ -67,7 +67,7 @@ const AppNavigator = () => {
               options={{
             headerShown: true, 
             title: t('nav.help'),
-            headerStyle: { backgroundColor: '#bcccff' },
+            headerStyle: { backgroundColor: '#b1dcf7' },
             headerTintColor: '#0F172A',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },
             headerBackTitle: 'Back', // iOS
@@ -77,7 +77,7 @@ const AppNavigator = () => {
               options={{
             headerShown: true, 
             title: t('nav.notifications'),
-            headerStyle: { backgroundColor: '#bcccff' },
+            headerStyle: { backgroundColor: '#b1dcf7' },
             headerTintColor: '#0F172A',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },
             headerBackTitle: 'Back', // iOS
@@ -87,7 +87,7 @@ const AppNavigator = () => {
         options={{
             headerShown: true, 
             title: t('nav.analyzeSkin'),
-            headerStyle: { backgroundColor: '#bcccff' },
+            headerStyle: { backgroundColor: '#b1dcf7' },
             headerTintColor: '#0F172A',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },
             headerBackTitle: 'Back', // iOS
@@ -98,7 +98,7 @@ const AppNavigator = () => {
         options={{
             headerShown: false, 
             title: t('nav.passwordReset'),
-            headerStyle: { backgroundColor: '#bcccff' },
+            headerStyle: { backgroundColor: '#b1dcf7' },
             headerTintColor: '#0F172A',
             headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },
             headerBackTitle: 'Back', // iOS
@@ -110,7 +110,7 @@ const AppNavigator = () => {
         options={{
           headerShown: true, 
           title: t('nav.results'),
-          headerStyle: { backgroundColor: '#bcccff' },
+          headerStyle: { backgroundColor: '#b1dcf7' },
           headerTintColor: '#0F172A',
           headerTitleStyle: { fontWeight: 'bold', fontSize: 22 },
           headerBackTitle: 'Back', // iOS

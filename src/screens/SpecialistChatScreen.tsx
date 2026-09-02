@@ -1,11 +1,13 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   SafeAreaView,
   StatusBar,
   StyleSheet,
@@ -14,10 +16,15 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Check, ChevronLeft, Send } from 'lucide-react-native';
 
-import { sendTelegramMessage } from '../services/telegram';
+import {
+  getSpecialistConsultationMessages,
+  sendTelegramMessage,
+  SpecialistConsultationMessage,
+} from '../services/telegram';
+import { supabase } from '../utils/supabase';
 
 type Message = {
   id: string;
@@ -35,6 +42,7 @@ const TEXT = '#20242C';
 const MUTED = '#8A8F98';
 const SEND_ACTIVE = '#1E90FF';
 const ERROR = '#B42318';
+const SHOW_CHAT_SYNC_DEBUG = true;
 
 const INITIAL_MESSAGES: Message[] = [
   {
@@ -45,6 +53,33 @@ const INITIAL_MESSAGES: Message[] = [
     status: 'sent',
   },
 ];
+
+function mapConsultationMessage(message: SpecialistConsultationMessage): Message {
+  return {
+    id: message.id,
+    sender:
+      message.direction === 'patient_to_specialist' ? 'user' : 'specialist',
+    text: message.message,
+    createdAt: message.created_at,
+    status: 'sent',
+  };
+}
+
+function mergePersistedMessages(
+  current: Message[],
+  persisted: SpecialistConsultationMessage[],
+): Message[] {
+  const persistedMessages = persisted.map(mapConsultationMessage);
+  const persistedIds = new Set(persistedMessages.map((message) => message.id));
+  const pendingMessages = current.filter(
+    (message) =>
+      message.id !== 'welcome' &&
+      message.status !== 'sent' &&
+      !persistedIds.has(message.id),
+  );
+
+  return [...INITIAL_MESSAGES, ...persistedMessages, ...pendingMessages];
+}
 
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.sender === 'user';
@@ -111,7 +146,138 @@ export default function SpecialistChatScreen() {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [chatUserId, setChatUserId] = useState<string | null>(null);
+  const [loadedMessageCount, setLoadedMessageCount] = useState(0);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadChatUser = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const sessionUserId = sessionData.session?.user.id;
+
+      if (sessionUserId) {
+        if (isMounted) {
+          setChatUserId(sessionUserId);
+        }
+
+        return;
+      }
+
+      const { data } = await supabase.auth.getUser();
+
+      if (isMounted) {
+        setChatUserId(data.user?.id ?? null);
+      }
+    };
+
+    void loadChatUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setChatUserId(session?.user.id ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const syncMessages = useCallback(async () => {
+    if (!chatUserId) {
+      setMessages(INITIAL_MESSAGES);
+      setLoadedMessageCount(0);
+      setErrorMessage('Please sign in to view specialist messages.');
+      return;
+    }
+
+    const response = await getSpecialistConsultationMessages(chatUserId);
+
+    if (response.success) {
+      setMessages((current) =>
+        mergePersistedMessages(current, response.messages),
+      );
+      setLoadedMessageCount(response.messages.length);
+      setLastSyncedAt(new Date().toLocaleTimeString());
+      setErrorMessage('');
+    } else {
+      setLoadedMessageCount(0);
+      setErrorMessage(response.error || 'Unable to load messages.');
+    }
+  }, [chatUserId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void syncMessages();
+    }, [syncMessages]),
+  );
+
+  useEffect(() => {
+    if (!chatUserId) return;
+
+    const refreshWhenActive = () => {
+      if (AppState.currentState === 'active') {
+        void syncMessages();
+      }
+    };
+
+    const refreshInterval = setInterval(refreshWhenActive, 8000);
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      (nextState) => {
+        if (nextState === 'active') {
+          void syncMessages();
+        }
+      },
+    );
+
+    return () => {
+      clearInterval(refreshInterval);
+      appStateSubscription.remove();
+    };
+  }, [chatUserId, syncMessages]);
+
+  useEffect(() => {
+    if (!chatUserId) {
+      setMessages(INITIAL_MESSAGES);
+      return;
+    }
+
+    void syncMessages();
+
+    const channel = supabase
+      .channel(`specialist-consultations:${chatUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'specialist_consultation_messages',
+          filter: `patient_user_id=eq.${chatUserId}`,
+        },
+        (payload) => {
+          const nextMessage = payload.new as SpecialistConsultationMessage;
+
+          setMessages((current) => {
+            if (current.some((message) => message.id === nextMessage.id)) {
+              return current;
+            }
+
+            return [...current, mapConsultationMessage(nextMessage)];
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [chatUserId, syncMessages]);
 
   const horizontalPadding = useMemo(() => {
     if (width >= 700) return Math.min(width * 0.08, 70);
@@ -133,6 +299,12 @@ export default function SpecialistChatScreen() {
     },
     [],
   );
+
+  const refreshMessages = useCallback(async () => {
+    setIsRefreshing(true);
+    await syncMessages();
+    setIsRefreshing(false);
+  }, [syncMessages]);
 
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
@@ -158,7 +330,27 @@ export default function SpecialistChatScreen() {
     });
 
     if (response.success) {
-      updateMessageStatus(messageId, 'sent');
+      if (response.consultation_message?.id) {
+        const savedMessage = mapConsultationMessage(
+          response.consultation_message,
+        );
+
+        setMessages((current) => {
+          const savedMessageAlreadyExists = current.some(
+            (message) => message.id === savedMessage.id,
+          );
+
+          if (savedMessageAlreadyExists) {
+            return current.filter((message) => message.id !== messageId);
+          }
+
+          return current.map((message) =>
+            message.id === messageId ? savedMessage : message,
+          );
+        });
+      } else {
+        updateMessageStatus(messageId, 'sent');
+      }
     } else {
       updateMessageStatus(messageId, 'failed');
       setErrorMessage(response.error || 'Unable to send message.');
@@ -205,6 +397,14 @@ export default function SpecialistChatScreen() {
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={refreshMessages}
+                tintColor={SEND_ACTIVE}
+                colors={[SEND_ACTIVE]}
+              />
+            }
             onContentSizeChange={() => {
               listRef.current?.scrollToEnd({ animated: true });
             }}
@@ -212,6 +412,25 @@ export default function SpecialistChatScreen() {
 
           {errorMessage ? (
             <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
+
+          {SHOW_CHAT_SYNC_DEBUG ? (
+            <View style={styles.syncDebugRow}>
+              <Text style={styles.syncDebugText}>
+                Chat user: {chatUserId ?? 'none'} | Loaded:{' '}
+                {loadedMessageCount} | Sync: {lastSyncedAt ?? 'not yet'}
+              </Text>
+
+              <Pressable
+                onPress={refreshMessages}
+                disabled={isRefreshing}
+                style={styles.syncDebugButton}
+              >
+                <Text style={styles.syncDebugButtonText}>
+                  {isRefreshing ? 'Loading' : 'Reload'}
+                </Text>
+              </Pressable>
+            </View>
           ) : null}
 
           <View style={styles.composerWrapper}>
@@ -439,5 +658,31 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     paddingHorizontal: 18,
     paddingTop: 8,
+  },
+  syncDebugRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingTop: 6,
+  },
+  syncDebugText: {
+    flex: 1,
+    color: MUTED,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  syncDebugButton: {
+    minHeight: 28,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E7F4FC',
+  },
+  syncDebugButtonText: {
+    color: SEND_ACTIVE,
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

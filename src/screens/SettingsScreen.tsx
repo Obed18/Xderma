@@ -34,10 +34,28 @@ type ProfileView =
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { t } = useXderma();
+  const { t, user, logout, authLoading } = useXderma();
 
   const [view, setView] = useState<ProfileView>("main");
 
+  const handleLogout = async () => {
+    if (authLoading) return;
+
+    try {
+      await logout();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unable to log out at the moment. Please try again.';
+
+      Alert.alert('Logout failed', message);
+    }
+  };
 
   if (view === "settings") {
     return (
@@ -110,9 +128,8 @@ const ProfileScreen: React.FC = () => {
         <Text style={styles.title}>{t("settings.profile")}</Text>
 
         <View style={styles.profileContainer}>
-    <Image source={require("../assets/account.png")} style={styles.profileImage}
-    />
-          <Text style={styles.email}>ob***********@gmail.com</Text>
+          <Image source={require("../assets/account.png")} style={styles.profileImage} />
+          <Text style={styles.email}>{user?.email ?? ""}</Text>
         </View>
       </View>
 
@@ -151,9 +168,14 @@ const ProfileScreen: React.FC = () => {
           onClick={() => navigation.navigate('Language')}
         />
 
-        <TouchableOpacity style={styles.logoutBtn}>
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          onPress={handleLogout}
+          disabled={authLoading}
+          activeOpacity={0.8}
+        >
           <LogOut size={18} color="#ef4444" />
-          <Text style={styles.logoutText}>{t("settings.logout")}</Text>
+          <Text style={styles.logoutText}>{authLoading ? 'Logging out...' : t("settings.logout")}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

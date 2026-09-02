@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     let patientLabel = "XDerma patient";
+    let patientUserId = "";
 
     if (authHeader?.startsWith("Bearer ")) {
       const jwt = authHeader.replace("Bearer ", "");
@@ -114,6 +115,8 @@ Deno.serve(async (req) => {
       const user = data.user;
 
       if (user) {
+        patientUserId = user.id;
+
         const metadata = user.user_metadata as {
           full_name?: string;
           name?: string;
@@ -130,6 +133,22 @@ Deno.serve(async (req) => {
           user.email ||
           patientLabel;
       }
+    }
+
+    if (!patientUserId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Please sign in before messaging a specialist.",
+        }),
+        {
+          status: 401,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
     }
 
     const { data: specialist, error: specialistError } =
@@ -169,23 +188,72 @@ Deno.serve(async (req) => {
       );
     }
 
+    const { data: consultationMessage, error: insertError } =
+      await supabase
+        .from("specialist_consultation_messages")
+        .insert({
+          patient_user_id: patientUserId,
+          specialist_connection_id: String(specialist.id),
+          direction: "patient_to_specialist",
+          message,
+        })
+        .select()
+        .single();
+
+    if (insertError) {
+      console.error(
+        "Consultation message insert error:",
+        insertError,
+      );
+
+      throw insertError;
+    }
+
     const telegramMessage = await sendTelegramMessage(
       specialist.telegram_chat_id,
       [
         "New XDerma specialist chat message",
         "",
         `From: ${patientLabel}`,
+        `Consultation ID: ${consultationMessage.id}`,
+        "",
+        "Reply directly to this Telegram message to answer only this patient.",
+        `If direct reply does not work, send: /reply ${consultationMessage.id} your message`,
         "",
         message,
       ].join("\n"),
     );
 
+    const telegramMessageId =
+      telegramMessage.result?.message_id != null
+        ? String(telegramMessage.result.message_id)
+        : null;
+
+    const { data: updatedConsultationMessage, error: updateError } =
+      await supabase
+        .from("specialist_consultation_messages")
+        .update({
+          telegram_message_id: telegramMessageId,
+        })
+        .select()
+        .eq("id", consultationMessage.id)
+        .single();
+
+    if (updateError) {
+      console.error(
+        "Consultation message Telegram id update error:",
+        updateError,
+      );
+
+      throw updateError;
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         specialist_connection_id: specialist.id,
-        telegram_message_id:
-          telegramMessage.result?.message_id ?? null,
+        consultation_message: updatedConsultationMessage,
+        telegram_message_id: telegramMessageId,
       }),
       {
         status: 200,

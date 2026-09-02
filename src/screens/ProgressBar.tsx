@@ -30,17 +30,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  label: { color: "#fff", width: "70%" },
-  value: { color: "#aaa" },
+  label: { color: "#000000", width: "70%" },
+  value: { color: "#6e6d6d" },
   bar: {
     height: 6,
-    backgroundColor: "#2A3441",
+    backgroundColor: "rgba(196, 196, 196, 0.65)",
     borderRadius: 10,
     marginTop: 4,
   },
   fill: {
     height: 6,
-    backgroundColor: "#F59E0B",
+    backgroundColor: "#FFB944",
     borderRadius: 10,
   },
 });

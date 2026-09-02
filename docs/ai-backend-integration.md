@@ -62,6 +62,11 @@ Then start Expo:
 cd "C:\Users\IN JESUS IS LIFE\Downloads\XDERMA PROJECT\xderma"
 npm run start:online
 ```
+cd "C:\Users\IN JESUS IS LIFE\Downloads\XDERMA PROJECT\xderma\HAM10000-Skin-Lesion-Classifier-main"
+
+.\.venv\Scripts\Activate.ps1
+
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 If you need a tunnel directly, skip Expo's online dependency validation check:
 

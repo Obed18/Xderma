@@ -390,12 +390,145 @@ Deno.serve(async (req) => {
       );
     }
 
+    const replyCommandMatch = messageText.match(
+      /^\/reply\s+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\s+([\s\S]+)$/i,
+    );
+
+    const explicitConsultationMessageId = replyCommandMatch?.[1] ?? "";
+    const specialistReplyText =
+      (replyCommandMatch?.[2] ?? messageText).trim();
+    const replyToMessageId =
+      message.reply_to_message?.message_id != null
+        ? String(message.reply_to_message.message_id)
+        : "";
+
+    if (!specialistReplyText) {
+      await sendTelegramMessage(
+        telegramChatId,
+        "Please include a response message after the consultation id.",
+      );
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          action: "empty_specialist_reply",
+          specialist_connection_id: connection.id,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    }
+
+    if (!replyToMessageId && !explicitConsultationMessageId) {
+      await sendTelegramMessage(
+        telegramChatId,
+        [
+          "Please reply directly to a patient's XDerma message in Telegram.",
+          "",
+          "You can also use the consultation id shown in the patient message:",
+          "/reply <consultation-id> your message",
+          "",
+          "That lets XDerma send your answer only to the patient who started that consultation.",
+        ].join("\n"),
+      );
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          action: "reply_required_for_routing",
+          specialist_connection_id: connection.id,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    }
+
+    let patientMessageQuery = supabase
+        .from("specialist_consultation_messages")
+        .select("patient_user_id, specialist_connection_id, telegram_message_id")
+        .eq("specialist_connection_id", String(connection.id))
+        .eq("direction", "patient_to_specialist");
+
+    patientMessageQuery = explicitConsultationMessageId
+      ? patientMessageQuery.eq("id", explicitConsultationMessageId)
+      : patientMessageQuery.eq("telegram_message_id", replyToMessageId);
+
+    const { data: patientMessage, error: patientMessageError } =
+      await patientMessageQuery.maybeSingle();
+
+    if (patientMessageError) {
+      console.error(
+        "Patient message lookup error:",
+        patientMessageError,
+      );
+
+      throw patientMessageError;
+    }
+
+    if (!patientMessage) {
+      await sendTelegramMessage(
+        telegramChatId,
+        [
+          "I could not match that reply to an XDerma patient message.",
+          "",
+          "Please reply to a recent patient message that was sent by the XDerma bot, or use the /reply command with the consultation id.",
+        ].join("\n"),
+      );
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          action: "patient_message_not_found",
+          specialist_connection_id: connection.id,
+          reply_to_telegram_message_id: replyToMessageId,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    }
+
+    const { error: replyInsertError } = await supabase
+      .from("specialist_consultation_messages")
+      .insert({
+        patient_user_id: patientMessage.patient_user_id,
+        specialist_connection_id: String(connection.id),
+        direction: "specialist_to_patient",
+        message: specialistReplyText,
+        telegram_message_id:
+          message.message_id != null ? String(message.message_id) : null,
+        reply_to_telegram_message_id: replyToMessageId || null,
+      });
+
+    if (replyInsertError) {
+      console.error(
+        "Specialist reply insert error:",
+        replyInsertError,
+      );
+
+      throw replyInsertError;
+    }
+
     await sendTelegramMessage(
       telegramChatId,
       [
-        "Your XDerma Telegram account is connected.",
+        "Reply sent in XDerma.",
         "",
-        "Incoming consultation routing is not configured in this project schema yet.",
+        "It was routed only to the patient whose message you replied to.",
       ].join("\n"),
     );
 

@@ -24,6 +24,17 @@ export interface TelegramConnectionResponse {
   error?: string;
 }
 
+export interface SpecialistConsultationMessage {
+  id: string;
+  patient_user_id: string;
+  specialist_connection_id: string;
+  direction: 'patient_to_specialist' | 'specialist_to_patient';
+  message: string;
+  telegram_message_id?: string | null;
+  reply_to_telegram_message_id?: string | null;
+  created_at: string;
+}
+
 type CreateSpecialistTelegramLinkResponse = {
   success: boolean;
   specialist?: {
@@ -190,6 +201,7 @@ export async function sendTelegramMessage(params: {
   message: string;
 }): Promise<{
   success: boolean;
+  consultation_message?: SpecialistConsultationMessage;
   telegram_message_id?: string;
   error?: string;
 }> {
@@ -230,6 +242,7 @@ export async function sendTelegramMessage(params: {
 
     return {
       success: true,
+      consultation_message: data.consultation_message,
       telegram_message_id: data.telegram_message_id
         ? String(data.telegram_message_id)
         : undefined,
@@ -240,6 +253,85 @@ export async function sendTelegramMessage(params: {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unable to send message.',
+    };
+  }
+}
+
+export async function getSpecialistConsultationMessages(patientUserId?: string): Promise<{
+  success: boolean;
+  messages: SpecialistConsultationMessage[];
+  error?: string;
+}> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+
+    if (!accessToken) {
+      throw new Error('Please sign in to view specialist messages.');
+    }
+
+    const { data: functionData, error: functionError } =
+      await supabase.functions.invoke('get-specialist-consultation-messages', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+    if (!functionError && functionData?.success) {
+      return {
+        success: true,
+        messages: (functionData.messages ?? []) as SpecialistConsultationMessage[],
+      };
+    }
+
+    if (functionError) {
+      console.log(
+        'getSpecialistConsultationMessages function fallback:',
+        await getSupabaseErrorMessage(
+          functionError,
+          'Unable to load specialist messages.',
+        ),
+      );
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = patientUserId ?? userData.user?.id;
+
+    if (!userId) {
+      throw new Error('Please sign in to view specialist messages.');
+    }
+
+    const { data, error } = await supabase
+      .from('specialist_consultation_messages')
+      .select(
+        'id, patient_user_id, specialist_connection_id, direction, message, telegram_message_id, reply_to_telegram_message_id, created_at',
+      )
+      .eq('patient_user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new Error(
+        await getSupabaseErrorMessage(
+          error,
+          'Unable to load specialist messages.',
+        ),
+      );
+    }
+
+    return {
+      success: true,
+      messages: (data ?? []) as SpecialistConsultationMessage[],
+    };
+  } catch (error) {
+    console.error('getSpecialistConsultationMessages:', error);
+
+    return {
+      success: false,
+      messages: [],
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Unable to load specialist messages.',
     };
   }
 }

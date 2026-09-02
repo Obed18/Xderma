@@ -309,7 +309,7 @@ const AnalysisCard = ({ route }: any) => {
           <View style={styles.modelInfo}>
             <View style={styles.row2}>
             <View style={styles.row}>
-              <Brain size={18} color="#00E0FF" />
+              <Brain size={18} color="#0A9DED" />
               <Text style={styles.modelTitle}>XDerma AI</Text>
             </View>
             <TouchableOpacity
@@ -317,7 +317,7 @@ const AnalysisCard = ({ route }: any) => {
               disabled={!gradcamImage}
               onPress={() => setShowGradCam(!showGradCam)}
             >
-              <Eye size={18} color={gradcamImage ? "#00E0FF" : "#64748B"} />
+              <Eye size={18} color={gradcamImage ? "#0A9DED" : "#3b4450"} />
               <Text style={[styles.toggleText, !gradcamImage && styles.toggleTextDisabled]}>
                 {gradcamImage
                   ? showGradCam
@@ -381,7 +381,7 @@ const AnalysisCard = ({ route }: any) => {
 
         <View style={styles.section}>
           <View style={styles.row}>
-            <Stethoscope size={18} color="#D8E5FF" />
+            <Stethoscope size={18} color="#0A9DED" />
             <Text style={styles.sectionTitleInline}>Clinical Summary</Text>
           </View>
 
@@ -408,7 +408,7 @@ const AnalysisCard = ({ route }: any) => {
 
         <View style={styles.advisory}>
           <View style={styles.row}>
-            <Info size={18} color="#00E0FF" />
+            <Info size={18} color="#0A9DED" />
             <Text style={styles.advisoryTitle}>Clinical Advisory</Text>
           </View>
           <Text style={styles.advisoryText}>
@@ -449,7 +449,7 @@ const AnalysisCard = ({ route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1220",
+    backgroundColor: "#f3f4f7",
   },
   contentContainer: {
     paddingBottom: 0.1,
@@ -459,14 +459,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderTopLeftRadius: 27,
     borderTopRightRadius: 27,
-    backgroundColor: "#0A0D0C",
+    backgroundColor: "#ffffff",
     paddingTop: 16,
     paddingBottom: 70,
     marginTop: -20,
     },
   modelCard: {
     flexDirection: "row",
-    backgroundColor: "#0A0D0C",
+    backgroundColor: "#fff",
     borderRadius: 20,
     padding: 12,
     marginBottom: 20,
@@ -504,12 +504,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modelTitle: {
-    color: "#fff",
+    color: "#0A9DED",
     fontWeight: "600",
     marginLeft: 6,
   },
   modelText: {
-    color: "#AEB8C7",
+    color: "#5f6061",
     fontSize: 12,
     marginTop: 2,
   },
@@ -522,16 +522,16 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   toggleText: {
-    color: "#00E0FF",
+    color: "#0A9DED",
     marginLeft: 5,
     fontWeight: "600",
   },
   toggleTextDisabled: {
-    color: "#64748B",
+    color: "#414c5a",
   },
   resultCard: {
     flexDirection: "row",
-    backgroundColor: "#1B2433",
+    backgroundColor: "#0a9ded30",
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,
@@ -556,42 +556,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   title: {
-    color: "#fff",
+    color: "#070707",
     fontSize: 18,
     fontWeight: "bold",
   },
   subtitle: {
-    color: "#AEB8C7",
+    color: "#42464d",
     fontSize: 12,
     marginTop: 4,
   },
   section: {
-    backgroundColor: "#0A0D0C",
+    backgroundColor: "#fff",
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,
   },
   sectionTitle: {
-    color: "#fff",
+    color: "#0A9DED",
     marginBottom: 10,
     fontWeight: "600",
     fontSize: 16,
   },
   sectionTitleInline: {
-    color: "#fff",
+    color: "#0A9DED",
     fontWeight: "600",
     fontSize: 16,
     marginLeft: 6,
   },
   detailHeading: {
-    color: "#D8E5FF",
+    color: "#0A9DED",
     fontSize: 14,
     fontWeight: "600",
     marginTop: 12,
     marginBottom: 6,
   },
   detailText: {
-    color: "#AEB8C7",
+    color: "#36393e",
     fontSize: 13,
     lineHeight: 20,
   },
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   advisory: {
-    backgroundColor: "#102235",
+    backgroundColor: "#0a9ded3b",
     padding: 16,
     borderRadius: 20,
     marginBottom: 20,
@@ -607,12 +607,12 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0, 224, 255, 0.22)",
   },
   advisoryTitle: {
-    color: "#00E0FF",
+    color: "#0A9DED",
     marginLeft: 6,
     fontWeight: "600",
   },
   advisoryText: {
-    color: "#AEB8C7",
+    color: "#090909",
     marginTop: 8,
     lineHeight: 20,
   },

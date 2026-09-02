@@ -302,8 +302,19 @@ export const XdermaProvider = ({ children }: XdermaProviderProps) => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    setAuthLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      setUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   const resetPassword = async (email: string) => {
