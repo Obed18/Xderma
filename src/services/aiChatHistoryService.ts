@@ -1,4 +1,8 @@
 import { supabase } from "../utils/supabase";
+import {
+  encryptChatString,
+  safeDecryptChatString,
+} from "../utils/chatEncryption";
 
 export type PersistedChatMessage = {
   id: string;
@@ -18,6 +22,7 @@ export type PersistedConversation = {
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ENCRYPTED_CONVERSATION_TITLE = "Encrypted chat";
 
 const getSupabaseErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
@@ -61,6 +66,28 @@ const toTimestamp = (timestamp: string, index: number) => {
   return new Date(Date.now() + index).toISOString();
 };
 
+const getAiMessageScope = (
+  userId: string,
+  conversationId: string,
+  sender: PersistedChatMessage["sender"]
+) => `ai-message:${userId}:${conversationId}:${sender}`;
+
+const decryptPersistedMessage = async (message: {
+  id: string;
+  conversation_id: string;
+  sender: PersistedChatMessage["sender"];
+  text: string;
+  created_at: string;
+}, userId: string): Promise<PersistedChatMessage> => ({
+  id: message.id,
+  sender: message.sender,
+  text: await safeDecryptChatString(
+    message.text,
+    getAiMessageScope(userId, message.conversation_id, message.sender)
+  ),
+  timestamp: message.created_at,
+});
+
 export async function getAiChatConversations(): Promise<
   PersistedConversation[]
 > {
@@ -98,20 +125,29 @@ export async function getAiChatConversations(): Promise<
     throw new Error(getSupabaseErrorMessage(messagesError));
   }
 
+  const decryptedMessages = await Promise.all(
+    ((messages ?? []) as Array<{
+      id: string;
+      conversation_id: string;
+      sender: PersistedChatMessage["sender"];
+      text: string;
+      created_at: string;
+    }>).map((message) => decryptPersistedMessage(message, userId))
+  );
+
   return (conversations ?? []).map((conversation) => ({
     id: conversation.id,
     title: conversation.title,
     created_at: conversation.created_at,
     updated_at: conversation.updated_at,
     user_id: conversation.user_id,
-    messages: (messages ?? [])
-      .filter((message) => message.conversation_id === conversation.id)
-      .map((message) => ({
-        id: message.id,
-        sender: message.sender,
-        text: message.text,
-        timestamp: message.created_at,
-      })),
+    messages: decryptedMessages.filter((message) =>
+      (messages ?? []).some(
+        (sourceMessage) =>
+          sourceMessage.id === message.id &&
+          sourceMessage.conversation_id === conversation.id
+      )
+    ),
   })) as PersistedConversation[];
 }
 
@@ -126,7 +162,7 @@ export async function saveAiChatConversation(
 
   const now = new Date().toISOString();
   const conversationPayload = {
-    title: conversation.title,
+    title: ENCRYPTED_CONVERSATION_TITLE,
     user_id: userId,
     updated_at: now,
   };
@@ -169,15 +205,22 @@ export async function saveAiChatConversation(
     throw new Error(getSupabaseErrorMessage(deleteError));
   }
 
-  const { error: insertError } = await supabase.from("ai_messages").insert(
-    conversation.messages.map((message, index) => ({
+  const encryptedMessages = await Promise.all(
+    conversation.messages.map(async (message, index) => ({
       conversation_id: conversationId,
       user_id: userId,
       sender: message.sender,
-      text: message.text,
+      text: await encryptChatString(
+        message.text,
+        getAiMessageScope(userId, conversationId, message.sender)
+      ),
       created_at: toTimestamp(message.timestamp, index),
     }))
   );
+
+  const { error: insertError } = await supabase
+    .from("ai_messages")
+    .insert(encryptedMessages);
 
   if (insertError) {
     throw new Error(getSupabaseErrorMessage(insertError));
@@ -185,7 +228,7 @@ export async function saveAiChatConversation(
 
   return {
     id: savedConversation.id,
-    title: savedConversation.title,
+    title: conversation.title,
     created_at: savedConversation.created_at,
     updated_at: savedConversation.updated_at,
     user_id: savedConversation.user_id,

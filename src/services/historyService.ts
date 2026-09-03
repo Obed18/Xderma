@@ -50,6 +50,19 @@ const getSupabaseErrorMessage = (error: unknown) => {
     return "The analysis could not be saved. Please try again.";
 };
 
+const toIntegerOrNull = (value: unknown) => {
+    if (value === null || value === undefined || value === "") return null;
+
+    const numericValue =
+        typeof value === "number"
+            ? value
+            : Number(String(value).replace("%", "").trim());
+
+    if (!Number.isFinite(numericValue)) return null;
+
+    return Math.round(numericValue);
+};
+
 export async function saveAnalysis(data: SaveAnalysisInput) {
     const {
         data: userData
@@ -67,10 +80,10 @@ export async function saveAnalysis(data: SaveAnalysisInput) {
             predicted_class: data.predicted_class,
             full_name: data.full_name,
             confidence: data.confidence ?? null,
-            confidence_pct: data.confidence_pct ?? null,
+            confidence_pct: toIntegerOrNull(data.confidence_pct),
             risk_level: data.risk_level ?? null,
             is_malignant: data.is_malignant ?? null,
-            inference_time_ms: data.inference_time_ms ?? null,
+            inference_time_ms: toIntegerOrNull(data.inference_time_ms),
             description: data.description ?? null,
             possible_condition: data.possible_condition ?? null,
             recommendation: data.recommendation ?? null,
@@ -102,4 +115,22 @@ export async function getHistory(): Promise<AnalysisHistoryRow[]> {
     if (error) throw new Error(getSupabaseErrorMessage(error));
 
     return (data ?? []) as AnalysisHistoryRow[];
+}
+
+export async function deleteAnalysis(id: AnalysisHistoryRow["id"]) {
+    const {
+        data: userData
+    } = await supabase.auth.getUser();
+
+    const user = userData.user;
+
+    if (!user) throw new Error("User not logged in");
+
+    const { error } = await supabase
+        .from("analysis_history")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+    if (error) throw new Error(getSupabaseErrorMessage(error));
 }

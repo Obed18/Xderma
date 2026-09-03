@@ -1,4 +1,8 @@
 import { supabase } from '../utils/supabase';
+import {
+  encryptChatString,
+  safeDecryptChatString,
+} from '../utils/chatEncryption';
 
 export interface TelegramConnection {
   id: string;
@@ -52,6 +56,22 @@ type CreateSpecialistTelegramLinkResponse = {
 };
 
 const TELEGRAM_BOT_USERNAME = process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME;
+
+const getSpecialistMessageScope = (
+  direction: SpecialistConsultationMessage['direction'],
+) => `specialist-message:${direction}`;
+
+export async function decryptSpecialistConsultationMessage(
+  message: SpecialistConsultationMessage,
+): Promise<SpecialistConsultationMessage> {
+  return {
+    ...message,
+    message: await safeDecryptChatString(
+      message.message,
+      getSpecialistMessageScope(message.direction),
+    ),
+  };
+}
 
 const getSupabaseErrorMessage = async (error: unknown, fallback: string) => {
   if (
@@ -210,6 +230,12 @@ export async function sendTelegramMessage(params: {
       throw new Error('Message cannot be empty.');
     }
 
+    const trimmedMessage = params.message.trim();
+    const encryptedMessage = await encryptChatString(
+      trimmedMessage,
+      getSpecialistMessageScope('patient_to_specialist'),
+    );
+
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
 
@@ -222,7 +248,8 @@ export async function sendTelegramMessage(params: {
             }
           : undefined,
         body: {
-          message: params.message.trim(),
+          message: trimmedMessage,
+          encrypted_message: encryptedMessage,
         },
       },
     );
@@ -242,7 +269,11 @@ export async function sendTelegramMessage(params: {
 
     return {
       success: true,
-      consultation_message: data.consultation_message,
+      consultation_message: data.consultation_message
+        ? await decryptSpecialistConsultationMessage(
+            data.consultation_message as SpecialistConsultationMessage,
+          )
+        : undefined,
       telegram_message_id: data.telegram_message_id
         ? String(data.telegram_message_id)
         : undefined,
@@ -278,9 +309,15 @@ export async function getSpecialistConsultationMessages(patientUserId?: string):
       });
 
     if (!functionError && functionData?.success) {
+      const decryptedMessages = await Promise.all(
+        ((functionData.messages ?? []) as SpecialistConsultationMessage[]).map(
+          decryptSpecialistConsultationMessage,
+        ),
+      );
+
       return {
         success: true,
-        messages: (functionData.messages ?? []) as SpecialistConsultationMessage[],
+        messages: decryptedMessages,
       };
     }
 
@@ -318,9 +355,15 @@ export async function getSpecialistConsultationMessages(patientUserId?: string):
       );
     }
 
+    const decryptedMessages = await Promise.all(
+      ((data ?? []) as SpecialistConsultationMessage[]).map(
+        decryptSpecialistConsultationMessage,
+      ),
+    );
+
     return {
       success: true,
-      messages: (data ?? []) as SpecialistConsultationMessage[],
+      messages: decryptedMessages,
     };
   } catch (error) {
     console.error('getSpecialistConsultationMessages:', error);

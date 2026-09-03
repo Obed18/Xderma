@@ -171,6 +171,8 @@ export default function BottomTabNavigator({
     }
   };
 
+  
+
   return (
     <View style={styles.screen}>
       <View style={styles.content}>{renderActiveScreen()}</View>
@@ -207,6 +209,7 @@ export default function BottomTabNavigator({
 
           <AddButton
             size={addSize}
+            active={active === 'profile'}
             onPress={handleAddPress}
           />
         </View>
@@ -217,11 +220,13 @@ export default function BottomTabNavigator({
 
 type AddButtonProps = {
   size: number;
+  active: boolean;
   onPress?: () => void;
 };
 
 function AddButton({
   size,
+  active,
   onPress,
 }: AddButtonProps) {
   const pressed = useSharedValue(0);
@@ -239,7 +244,7 @@ function AddButton({
   });
 
   return (
-    <AnimatedPressable
+ <AnimatedPressable
       onPress={onPress}
       onPressIn={() => {
         pressed.value = withSpring(1, {
@@ -252,6 +257,7 @@ function AddButton({
       }}
       style={[
         styles.addButton,
+        active && styles.activeAddButton,
         {
           width: size,
           height: size,
@@ -262,12 +268,11 @@ function AddButton({
     >
       <UserRound
         size={24}
-        color="#F4F4F5"
+        color={active ? '#FFF' : '#616162'}
         strokeWidth={1.9}
       />
     </AnimatedPressable>
-  );
-}
+  );}
 
 const styles = StyleSheet.create({
   screen: {
@@ -361,12 +366,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
 
-    backgroundColor: '#18181A',
+    backgroundColor: 'rgba(236, 246, 250, 0.85)',
 
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.055)',
+    borderColor: 'rgba(20, 144, 217, 0.15)',
 
-    shadowColor: '#000',
+    shadowColor: '#00000065',
     shadowOffset: {
       width: 0,
       height: 8,
@@ -375,5 +380,12 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
 
     elevation: 10,
+  },
+  activeAddButton: {
+    backgroundColor: '#0A9DED',
+
+    // Very subtle depth
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.018)',
   },
 });

@@ -17,12 +17,18 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AiChatHistoryMessage,
+  AiChatScanContext,
   sendAiChatMessage,
 } from '../services/aiChatApi';
 import {
   getAiChatConversations,
   saveAiChatConversation,
 } from '../services/aiChatHistoryService';
+import {
+  decryptChatJson,
+  encryptChatJson,
+  isEncryptedChatPayload,
+} from '../utils/chatEncryption';
 
 import Animated, {
   FadeIn,
@@ -60,8 +66,17 @@ type Conversation = {
   messages: ChatMessage[];
 };
 
+type ConsultationRouteParams = {
+  consultation?: {
+    initialMessage?: string;
+    latestScan?: AiChatScanContext;
+  };
+};
+
 const CHAT_STORAGE_KEY = 'xderma.ai.conversations';
 const CURRENT_CHAT_STORAGE_KEY = 'xderma.ai.currentConversation';
+const CHAT_STORAGE_SCOPE = 'ai-local-conversations';
+const CURRENT_CHAT_STORAGE_SCOPE = 'ai-local-current-conversation';
 const ACTIVE_USER_ID = 'local-xderma-user';
 
 const NAVY = '#b1dcf7';
@@ -358,7 +373,9 @@ const Composer = React.memo(function Composer({ value, onChangeText, onSend }: C
   );
 });
 
-const AiChatScreen: React.FC = () => {
+const AiChatScreen: React.FC<{ route?: { params?: ConsultationRouteParams } }> = ({
+  route,
+}) => {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView | null>(null);
 
@@ -372,6 +389,7 @@ const AiChatScreen: React.FC = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const activeConversationIdRef = useRef(activeConversationId);
   const conversationsRef = useRef<Conversation[]>([]);
+  const handledConsultationRef = useRef<string | null>(null);
 
   const compact = width < 380;
   const hasUserMessages = messages.some((message) => message.sender === 'user');
@@ -399,17 +417,28 @@ const AiChatScreen: React.FC = () => {
         ]);
 
         if (storedConversations) {
-          const parsed = JSON.parse(storedConversations) as Conversation[];
+          const parsed = isEncryptedChatPayload(storedConversations)
+            ? await decryptChatJson<Conversation[]>(
+                storedConversations,
+                CHAT_STORAGE_SCOPE
+              )
+            : (JSON.parse(storedConversations) as Conversation[]);
+
           if (Array.isArray(parsed) && parsed.length > 0) {
             setConversations(parsed);
           }
         }
 
         if (storedCurrent) {
-          const parsedCurrent = JSON.parse(storedCurrent) as {
-            id: string;
-            messages: ChatMessage[];
-          };
+          const parsedCurrent = isEncryptedChatPayload(storedCurrent)
+            ? await decryptChatJson<{
+                id: string;
+                messages: ChatMessage[];
+              }>(storedCurrent, CURRENT_CHAT_STORAGE_SCOPE)
+            : (JSON.parse(storedCurrent) as {
+                id: string;
+                messages: ChatMessage[];
+              });
 
           if (parsedCurrent?.id && Array.isArray(parsedCurrent.messages)) {
             setActiveConversationId(parsedCurrent.id);
@@ -445,7 +474,13 @@ const AiChatScreen: React.FC = () => {
       return;
     }
 
-    AsyncStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(conversations));
+    void encryptChatJson(conversations, CHAT_STORAGE_SCOPE)
+      .then((encryptedConversations) =>
+        AsyncStorage.setItem(CHAT_STORAGE_KEY, encryptedConversations)
+      )
+      .catch((error) => {
+        console.log('Could not encrypt AI chat history', error);
+      });
   }, [conversations, isHydrated]);
 
   useEffect(() => {
@@ -453,10 +488,16 @@ const AiChatScreen: React.FC = () => {
       return;
     }
 
-    AsyncStorage.setItem(
-      CURRENT_CHAT_STORAGE_KEY,
-      JSON.stringify({ id: activeConversationId, messages })
-    );
+    void encryptChatJson(
+      { id: activeConversationId, messages },
+      CURRENT_CHAT_STORAGE_SCOPE
+    )
+      .then((encryptedCurrentChat) =>
+        AsyncStorage.setItem(CURRENT_CHAT_STORAGE_KEY, encryptedCurrentChat)
+      )
+      .catch((error) => {
+        console.log('Could not encrypt current AI chat', error);
+      });
   }, [activeConversationId, isHydrated, messages]);
 
   useEffect(() => {
@@ -528,7 +569,13 @@ const AiChatScreen: React.FC = () => {
     persistConversationToCloud(nextConversation);
   }, [persistConversationToCloud]);
 
-  const handleSend = useCallback(async (messageText?: string) => {
+  const handleSend = useCallback(async (
+    messageText?: string,
+    options?: {
+      baseMessages?: ChatMessage[];
+      latestScan?: AiChatScanContext;
+    }
+  ) => {
     const trimmed = (messageText ?? input).trim();
 
     if (!trimmed) {
@@ -542,7 +589,7 @@ const AiChatScreen: React.FC = () => {
       text: trimmed,
     };
 
-    const userMessages = [...messages, userMessage];
+    const userMessages = [...(options?.baseMessages ?? messages), userMessage];
     setMessages(userMessages);
     syncConversation(userMessages);
     setInput('');
@@ -559,6 +606,7 @@ const AiChatScreen: React.FC = () => {
         message: trimmed,
         conversationId: activeConversationIdRef.current,
         messages: chatHistory,
+        latestScan: options?.latestScan,
       });
       const aiMessage: ChatMessage = {
         id: `ai-${Date.now()}`,
@@ -594,6 +642,37 @@ const AiChatScreen: React.FC = () => {
       setIsThinking(false);
     }
   }, [input, messages, syncConversation]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const consultation = route?.params?.consultation;
+    const initialMessage = consultation?.initialMessage?.trim();
+
+    if (!initialMessage) return;
+    if (handledConsultationRef.current === initialMessage) return;
+
+    handledConsultationRef.current = initialMessage;
+
+    syncConversation(messages);
+    const nextConversationId = `conversation-consultation-${Date.now()}`;
+    activeConversationIdRef.current = nextConversationId;
+    setActiveConversationId(nextConversationId);
+    setMessages([]);
+    setInput('');
+    setIsThinking(false);
+
+    void handleSend(initialMessage, {
+      baseMessages: [],
+      latestScan: consultation?.latestScan,
+    });
+  }, [
+    handleSend,
+    isHydrated,
+    messages,
+    route?.params?.consultation,
+    syncConversation,
+  ]);
 
   const handleNewChat = () => {
     syncConversation(messages);

@@ -119,9 +119,6 @@ const ProfileScreen: React.FC = () => {
     );
   }
 
-  /* =========================================================
-     🔹 MAIN VIEW
-  ========================================================= */
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
@@ -132,7 +129,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.email}>{user?.email ?? ""}</Text>
         </View>
       </View>
-
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.card}>
         <MenuItem
           icon={<Settings size={18} />}
@@ -178,13 +175,11 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.logoutText}>{authLoading ? 'Logging out...' : t("settings.logout")}</Text>
         </TouchableOpacity>
       </View>
+      </ScrollView>
     </ScrollView>
   );
 };
 
-/* =========================================================
-   🔹 SMALL COMPONENTS
-========================================================= */
 
 const BackHeader: React.FC<{ title: string; onBack: () => void }> =
   ({ title, onBack }) => (
@@ -258,9 +253,16 @@ const SettingsItem: React.FC<any> = ({
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
-    backgroundColor: "#0A0D0C",
-    paddingVertical: 40,
+    backgroundColor: "#b1dcf7",
 },
+  contentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingBottom: 40,
+  },
   center: {
     flex: 1,
     alignItems: "center",
@@ -268,15 +270,13 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   header: {
-    backgroundColor: "#0A0D0C",
+    backgroundColor: "#b1dcf7",
     paddingBottom: 30,
     paddingTop: 50,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     width: "100%",
   },
   title: {
-    color: "#FFF",
+    color: "#0A9DED",
     fontSize: 24,
     fontWeight: "700",
     marginBottom: 24,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     borderWidth: 4,
-    borderColor: "#FFF",
+    borderColor: "#ecebeb",
     marginBottom: 12,
   },
   nameRow: {
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   email: {
-    color: "#FFF",
+    color: "#090909",
     opacity: 0.9,
     marginTop: 4,
   },
@@ -313,13 +313,13 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "#eee",
+    backgroundColor: "#9c9999",
     marginBottom: 20,
   },
 
   cardTitle: { fontSize: 22, fontWeight: "700", marginBottom: 6 },
   subtitle: {
-    color: "#666",
+    color: "#444444",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -334,10 +334,7 @@ const styles = StyleSheet.create({
   primaryText: { color: "#fff", fontWeight: "600" },
 
   card: {
-    backgroundColor: "#0A0D0C",
-    padding: 12,
-    borderRadius: 20,
-    paddingVertical: 10,
+    backgroundColor: "#fff",
     margin: 10,
   },
 
@@ -352,13 +349,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#eceaea",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  itemTitle: { fontWeight: "600", fontSize: 14, color: "#fff", },
-  itemDesc: { fontSize: 12, color: "#bababa" },
+  itemTitle: { fontWeight: "600", fontSize: 14, color: "#0e0e0e", },
+  itemDesc: { fontSize: 12, color: "#3c3b3b" },
 
   logoutBtn: {
     flexDirection: "row",

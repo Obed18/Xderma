@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -8,13 +8,25 @@ import {
     ListRenderItem,
     TouchableOpacity,
     ViewStyle,
+    ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { AnalysisHistoryRow, getHistory } from "../services/historyService";
 
 type Severity = "Mild" | "Moderate" | "Severe";
+
+const HISTORY_FILTERS = [
+    { label: "All", classKey: "all" },
+    { label: "Actinic Keratosis", classKey: "akiec" },
+    { label: "Basal Cell Carcinoma", classKey: "bcc" },
+    { label: "Benign Keratosis", classKey: "bkl" },
+    { label: "Dermatofibroma", classKey: "df" },
+    { label: "Melanoma", classKey: "mel" },
+    { label: "Melanocytic Nevi", classKey: "nv" },
+    { label: "Vascular Lesions", classKey: "vasc" },
+] as const;
 
 const getMostCommonCondition = (items: AnalysisHistoryRow[]) => {
     const counts = items.reduce<Record<string, number>>((acc, item) => {
@@ -76,14 +88,23 @@ const formatDate = (createdAt?: string | null) => {
 };
 
 export default function HistoryScreen() {
-    const [activeFilter, setActiveFilter] = useState("All");
+    const navigation = useNavigation<any>();
+    const [activeFilter, setActiveFilter] = useState("all");
     const [history, setHistory] = useState<AnalysisHistoryRow[]>([]);
 
-    const totalScans = history.length;
-    const lastScan = history[0]?.created_at
-        ? formatDate(history[0].created_at)
+    const filteredHistory = useMemo(() => {
+        if (activeFilter === "all") return history;
+
+        return history.filter(
+            (item) => item.predicted_class?.toLowerCase() === activeFilter
+        );
+    }, [activeFilter, history]);
+
+    const totalScans = filteredHistory.length;
+    const lastScan = filteredHistory[0]?.created_at
+        ? formatDate(filteredHistory[0].created_at)
         : "--";
-    const mostCommon = getMostCommonCondition(history);
+    const mostCommon = getMostCommonCondition(filteredHistory);
 
     useFocusEffect(
         useCallback(() => {
@@ -102,7 +123,15 @@ export default function HistoryScreen() {
         const imageUrl = item.image_url ?? undefined;
 
         return (
-            <TouchableOpacity style={styles.card}>
+            <TouchableOpacity
+                style={styles.card}
+                onPress={() =>
+                    navigation.navigate("ResultsScreen", {
+                        historyItem: item,
+                        source: "history",
+                    })
+                }
+            >
                 {imageUrl ? (
                     <Image
                         source={{ uri: imageUrl }}
@@ -167,33 +196,42 @@ export default function HistoryScreen() {
                 </View>
 
                 {/* FILTERS */}
-                <View style={styles.filters}>
-                    {["All", "Acne", "Eczema", "Recent"].map((item) => (
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.filters}
+                >
+                    {HISTORY_FILTERS.map((item) => (
                         <TouchableOpacity
-                            key={item}
-                            onPress={() => setActiveFilter(item)}
+                            key={item.classKey}
+                            onPress={() => setActiveFilter(item.classKey)}
                             style={[
                                 styles.filterBtn,
-                                activeFilter === item && styles.activeFilter,
+                                activeFilter === item.classKey && styles.activeFilter,
                             ]}
                         >
                             <Text
                                 style={[
                                     styles.filterText,
-                                    activeFilter === item && { color: "#f8f4f4" },
+                                    activeFilter === item.classKey && { color: "#f8f4f4" },
                                 ]}
                             >
-                                {item}
+                                {item.label}
                             </Text>
                         </TouchableOpacity>
                     ))}
-                </View>
+                </ScrollView>
 
                 {/* LIST */}
                 <FlatList
-                    data={history}
+                    data={filteredHistory}
                     keyExtractor={(item) => String(item.id)}
                     renderItem={renderItem}
+                    ListEmptyComponent={
+                        <Text style={styles.emptyText}>
+                            No saved analyses match this filter.
+                        </Text>
+                    }
                     contentContainerStyle={{ paddingBottom: 100 }}
                 />
             </View>
@@ -213,7 +251,6 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         flexDirection: "row",
         justifyContent: "space-between",
-        marginBottom: 16,
         backgroundColor: "#b1dcf7",
     },
 
@@ -272,6 +309,7 @@ const styles = StyleSheet.create({
     filters: {
         flexDirection: "row",
         marginBottom: 12,
+        paddingRight: 16,
     },
 
     filterBtn: {
@@ -288,6 +326,15 @@ const styles = StyleSheet.create({
 
     filterText: {
         color: "#71767e",
+        fontSize: 12,
+        fontWeight: "600",
+    },
+
+    emptyText: {
+        color: "#71767e",
+        fontSize: 13,
+        paddingVertical: 24,
+        textAlign: "center",
     },
 
     card: {

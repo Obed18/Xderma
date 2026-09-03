@@ -20,6 +20,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Check, ChevronLeft, Send } from 'lucide-react-native';
 
 import {
+  decryptSpecialistConsultationMessage,
   getSpecialistConsultationMessages,
   sendTelegramMessage,
   SpecialistConsultationMessage,
@@ -263,13 +264,19 @@ export default function SpecialistChatScreen() {
         (payload) => {
           const nextMessage = payload.new as SpecialistConsultationMessage;
 
-          setMessages((current) => {
-            if (current.some((message) => message.id === nextMessage.id)) {
-              return current;
-            }
+          void decryptSpecialistConsultationMessage(nextMessage).then(
+            (decryptedMessage) => {
+              setMessages((current) => {
+                if (
+                  current.some((message) => message.id === decryptedMessage.id)
+                ) {
+                  return current;
+                }
 
-            return [...current, mapConsultationMessage(nextMessage)];
-          });
+                return [...current, mapConsultationMessage(decryptedMessage)];
+              });
+            },
+          );
         },
       )
       .subscribe();

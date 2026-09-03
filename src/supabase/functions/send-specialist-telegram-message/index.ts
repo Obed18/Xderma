@@ -88,6 +88,10 @@ Deno.serve(async (req) => {
       typeof body.message === "string"
         ? body.message.trim()
         : "";
+    const encryptedMessage =
+      typeof body.encrypted_message === "string"
+        ? body.encrypted_message.trim()
+        : "";
 
     if (!message) {
       return new Response(
@@ -195,7 +199,7 @@ Deno.serve(async (req) => {
           patient_user_id: patientUserId,
           specialist_connection_id: String(specialist.id),
           direction: "patient_to_specialist",
-          message,
+          message: encryptedMessage || message,
         })
         .select()
         .single();

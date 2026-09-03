@@ -8,6 +8,7 @@ import {
   Dimensions,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MotiView } from "moti";
 import {
@@ -18,13 +19,20 @@ import {
   Info,
   ShieldAlert,
   Stethoscope,
+  CheckCircle,
+  Trash2,
+  MessageCircle,
 } from "lucide-react-native";
 import ConfidenceCircle from "./ConfidenceCircle";
 import ProgressBar from "./ProgressBar";
 import SaveDetectionModal from "./SaveDetectionModal";
 import { useNavigation } from "@react-navigation/native";
-import { SkinPrediction } from "../services/skinAnalysisApi";
-import { saveAnalysis } from "../services/historyService";
+import { ClassProbability, SkinPrediction } from "../services/skinAnalysisApi";
+import {
+  AnalysisHistoryRow,
+  deleteAnalysis,
+  saveAnalysis,
+} from "../services/historyService";
 
 const { width } = Dimensions.get("window");
 
@@ -203,28 +211,120 @@ const getErrorMessage = (error: unknown) => {
   return "The analysis could not be saved. Please try again.";
 };
 
+const parsePercent = (value: unknown) => {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value.replace("%", "").trim());
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+};
+
+const formatConfidencePct = (
+  confidencePct?: number | string | null,
+  confidence?: number | null
+) => {
+  const parsedPercent = parsePercent(confidencePct);
+
+  if (parsedPercent !== null) {
+    return `${Math.round(parsedPercent * 100) / 100}%`;
+  }
+
+  if (typeof confidence === "number") {
+    return `${Math.round(confidence * 10000) / 100}%`;
+  }
+
+  return "0%";
+};
+
+const toNumber = (value: unknown, fallback = 0) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getHistoryProbabilities = (
+  probabilities: AnalysisHistoryRow["probabilities"]
+): ClassProbability[] => {
+  if (!Array.isArray(probabilities)) return [];
+
+  return probabilities.filter((item): item is ClassProbability => {
+    if (!item || typeof item !== "object") return false;
+
+    const probability = item as Partial<ClassProbability>;
+    return (
+      typeof probability.class_key === "string" &&
+      typeof probability.full_name === "string" &&
+      typeof probability.probability === "number"
+    );
+  });
+};
+
+const buildPredictionFromHistory = (
+  item?: AnalysisHistoryRow
+): SkinPrediction | undefined => {
+  if (!item?.predicted_class || !item.full_name) return undefined;
+
+  const confidence = toNumber(item.confidence);
+
+  return {
+    filename: "",
+    predicted_class: item.predicted_class,
+    full_name: item.full_name,
+    confidence,
+    confidence_pct: formatConfidencePct(item.confidence_pct, item.confidence),
+    risk_level: item.risk_level ?? undefined,
+    is_malignant: Boolean(item.is_malignant),
+    malignant_warning: item.recommendation ?? "",
+    recommendation: item.recommendation ?? undefined,
+    all_probabilities: getHistoryProbabilities(item.probabilities),
+    gradcam_data_url: item.gradcam_url ?? null,
+    inference_time_ms: toNumber(item.inference_time_ms),
+  };
+};
+
 const AnalysisCard = ({ route }: any) => {
   const [showGradCam, setShowGradCam] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<
     "SkinAnalysis" | "History" | null
   >(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigation = useNavigation<any>();
-  const selectedImage = route?.params?.image as string | undefined;
-  const symptoms = route?.params?.symptoms?.trim();
-  const prediction = route?.params?.prediction as SkinPrediction | undefined;
+  const historyItem = route?.params?.historyItem as
+    | AnalysisHistoryRow
+    | undefined;
+  const isHistoryView = route?.params?.source === "history" && historyItem;
+  const selectedImage = (route?.params?.image ||
+    historyItem?.image_url) as string | undefined;
+  const symptoms = (route?.params?.symptoms ?? historyItem?.symptoms)?.trim();
+  const prediction =
+    (route?.params?.prediction as SkinPrediction | undefined) ??
+    buildPredictionFromHistory(historyItem);
   const gradcamImage = prediction?.gradcam_data_url;
   const confidence = getConfidencePercent(prediction);
   const riskLevel = getRiskLevel(prediction);
   const riskColor = getRiskColor(riskLevel);
   const topProbabilities = prediction?.all_probabilities?.slice(0, 5) || [];
   const description = prediction
-    ? CLASS_DESCRIPTIONS[prediction.predicted_class] ||
+    ? historyItem?.description ||
+      CLASS_DESCRIPTIONS[prediction.predicted_class] ||
       "The AI model matched the image to this lesion class based on visual patterns learned from HAM10000."
     : "No prediction data was received. Please run a new analysis when the AI backend is available.";
-  const possibleCondition = buildPossibleConditionText(prediction, symptoms);
+  const possibleCondition =
+    historyItem?.possible_condition ||
+    buildPossibleConditionText(prediction, symptoms);
 
   const promptBeforeLeaving = (destination: "SkinAnalysis" | "History") => {
+    if (hasSaved) {
+      navigation.navigate(destination);
+      return;
+    }
+
     setPendingRoute(destination);
     setSaveModalVisible(true);
   };
@@ -240,7 +340,7 @@ const AnalysisCard = ({ route }: any) => {
     }
   };
 
-  const saveToHistory = async () => {
+  const saveToHistory = async (options?: { navigateAfterSave?: boolean }) => {
     if (!prediction) {
       Alert.alert(
         "Nothing to save",
@@ -249,7 +349,18 @@ const AnalysisCard = ({ route }: any) => {
       return;
     }
 
+    if (isSaving) return;
+
+    if (hasSaved) {
+      if (options?.navigateAfterSave) {
+        navigateToPendingRoute();
+      }
+      return;
+    }
+
     try {
+      setIsSaving(true);
+
       await saveAnalysis({
         image_url: selectedImage ?? null,
         predicted_class: prediction.predicted_class,
@@ -268,16 +379,137 @@ const AnalysisCard = ({ route }: any) => {
         gradcam_url: prediction.gradcam_data_url ?? null,
       });
 
-      navigateToPendingRoute();
+      setHasSaved(true);
+
+      if (options?.navigateAfterSave) {
+        navigateToPendingRoute();
+        return;
+      }
+
+      Alert.alert(
+        "Saved",
+        "This analysis has been saved to your detection history.",
+        [
+          { text: "Stay", style: "cancel" },
+          {
+            text: "View History",
+            onPress: () => navigation.navigate("History"),
+          },
+        ]
+      );
     } catch (err) {
       console.log("Failed to save analysis history:", err);
       Alert.alert("Save failed", getErrorMessage(err));
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const closeSaveModal = () => {
     setSaveModalVisible(false);
     setPendingRoute(null);
+  };
+
+  const deleteFromHistory = async () => {
+    if (!historyItem?.id || isDeleting) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteAnalysis(historyItem.id);
+      Alert.alert("Deleted", "This analysis has been removed from history.", [
+        {
+          text: "OK",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (err) {
+      console.log("Failed to delete analysis history:", err);
+      Alert.alert("Delete failed", getErrorMessage(err));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmDeleteFromHistory = () => {
+    Alert.alert(
+      "Delete from history?",
+      "This saved analysis will be permanently removed from your history.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: deleteFromHistory,
+        },
+      ]
+    );
+  };
+
+  const buildConsultationPrompt = () => {
+    const probabilities =
+      topProbabilities.length > 0
+        ? topProbabilities
+            .map(
+              (item) =>
+                `- ${item.full_name}: ${Math.round(item.probability * 1000) / 10}%`
+            )
+            .join("\n")
+        : "- No probability scores were saved.";
+
+    return [
+      "Please consult me on this saved XDerma skin analysis.",
+      "",
+      `Uploaded image URI: ${selectedImage || "No image saved"}`,
+      `Predicted condition: ${prediction?.full_name || "Unavailable"}`,
+      `Class key: ${prediction?.predicted_class || "Unavailable"}`,
+      `Confidence: ${prediction?.confidence_pct || "Unavailable"}`,
+      `Risk level: ${riskLevel}`,
+      `Malignant flag: ${
+        prediction?.is_malignant === undefined
+          ? "Unavailable"
+          : prediction.is_malignant
+          ? "Yes"
+          : "No"
+      }`,
+      `Inference time: ${
+        prediction?.inference_time_ms
+          ? `${prediction.inference_time_ms} ms`
+          : "Unavailable"
+      }`,
+      "",
+      "Clinical summary:",
+      description,
+      "",
+      "Possible condition:",
+      possibleCondition,
+      "",
+      "Recommendation:",
+      prediction?.recommendation ||
+        prediction?.malignant_warning ||
+        "No recommendation was saved.",
+      "",
+      "My symptom notes:",
+      symptoms || "No symptom notes were saved.",
+      "",
+      "Probability scores:",
+      probabilities,
+      "",
+      "Please explain what this means, what symptoms I should monitor, and what safe next steps I should take. Do not diagnose me; guide me on whether I should see a dermatologist.",
+    ].join("\n");
+  };
+
+  const consultXdermaAi = () => {
+    navigation.navigate("AiChat", {
+      consultation: {
+        initialMessage: buildConsultationPrompt(),
+        latestScan: {
+          condition: prediction?.full_name,
+          shortName: prediction?.predicted_class,
+          confidence: prediction?.confidence_pct,
+          priority: riskLevel,
+        },
+      },
+    });
   };
 
   return (
@@ -416,30 +648,69 @@ const AnalysisCard = ({ route }: any) => {
           </Text>
         </View>
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => promptBeforeLeaving("SkinAnalysis")}
-          >
-            <RotateCcw size={18} color="#fff" />
-            <Text style={styles.btnText}>New Analysis</Text>
-          </TouchableOpacity>
+        {isHistoryView ? (
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.deleteBtn, isDeleting && styles.secondaryBtnDisabled]}
+              onPress={confirmDeleteFromHistory}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Trash2 size={18} color="#fff" />
+              )}
+              <Text style={styles.btnText}>
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() => promptBeforeLeaving("History")}
-          >
-            <FileText size={18} color="#fff" />
-            <Text style={styles.btnText}>Save</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.consultBtn}
+              onPress={consultXdermaAi}
+            >
+              <MessageCircle size={18} color="#fff" />
+              <Text style={styles.btnText}>Consult XDerma AI</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => promptBeforeLeaving("SkinAnalysis")}
+            >
+              <RotateCcw size={18} color="#fff" />
+              <Text style={styles.btnText}>New Analysis</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.secondaryBtn,
+                (!prediction || isSaving || hasSaved) && styles.secondaryBtnDisabled,
+              ]}
+              onPress={() => saveToHistory()}
+              disabled={!prediction || isSaving || hasSaved}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : hasSaved ? (
+                <CheckCircle size={18} color="#fff" />
+              ) : (
+                <FileText size={18} color="#fff" />
+              )}
+              <Text style={styles.btnText}>
+                {isSaving ? "Saving..." : hasSaved ? "Saved" : "Save"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
         </ScrollView>
       </ScrollView>
 
       <SaveDetectionModal
         visible={saveModalVisible}
         onClose={closeSaveModal}
-        onSave={saveToHistory}
+        onSave={() => saveToHistory({ navigateAfterSave: true })}
         onDontSave={navigateToPendingRoute}
       />
     </>
@@ -628,6 +899,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
   },
   secondaryBtn: {
@@ -637,6 +909,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
+  },
+  secondaryBtnDisabled: {
+    opacity: 0.65,
+  },
+  deleteBtn: {
+    flex: 1,
+    backgroundColor: "#DC2626",
+    padding: 14,
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  consultBtn: {
+    flex: 1,
+    backgroundColor: "#0A9DED",
+    padding: 14,
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   btnText: {
     color: "#fff",
